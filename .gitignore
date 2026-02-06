@@ -1,0 +1,6 @@
+node_modules/
+.copilot-ci-doctor/
+.ci-doctor/
+*.patch
+copilot-raw-output-debug.txt
+.copilot-ci-doctor/**

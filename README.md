@@ -360,6 +360,11 @@ copilot-ci-doctor/
   gh auth login
   ```
 - **GitHub Copilot** subscription (required for `gh copilot` CLI extension)
+- **GitHub Copilot CLI** extension installed and working:
+  ```bash
+  gh extension install github/gh-copilot
+  gh copilot --help   # verify it works
+  ```
 
 ### Dependencies
 

@@ -7,7 +7,8 @@ Instead of manually digging through logs, Copilot CLI:
 - analyzes CI evidence,
 - explains *why* a pipeline failed in plain English,
 - proposes **minimal, safe patch diffs** with confidence scores,
-- and **iteratively fixes** CI failures until the pipeline is green — safely and transparently.
+- **iteratively fixes** CI failures until the pipeline is green,
+- and **opens a Pull Request** against `main` with the fix — link included.
 
 This is **not** log summarization.  
 It's **evidence-based reasoning for CI failures**.
@@ -23,7 +24,7 @@ CI failures are one of the biggest productivity drains in software development:
 
 **copilot-ci-doctor** turns CI failures into a guided flow:
 
-> **failure → evidence → reasoning → safe fix → green CI**
+> **failure → evidence → reasoning → safe fix → green CI → PR**
 
 ---
 
@@ -63,6 +64,7 @@ Given a failed GitHub Actions run, the tool:
   - loops until CI passes or confidence drops below 80%
   - **single Copilot call per iteration** (~0.33x token usage vs naive approach)
   - prints a final scoreboard with token usage estimates
+  - **opens a PR** against `main` when CI is green
 
 Without **GitHub Copilot CLI**, this tool does not work — all reasoning and patch generation comes directly from Copilot.
 
@@ -112,6 +114,8 @@ Example output:
 
   CI before: ✖ FAILED → after fix: ✓ PASSING
 🎉 CI is fixed!
+
+  🔗 Pull Request: https://github.com/your-org/your-repo/pull/1
 ```
 
 ---
@@ -165,7 +169,7 @@ Continuously monitors the CI pipeline using **single-call mode** (1 Copilot call
 5. If CI still fails, loops back to step 1
 
 Stops when:
-- CI passes ✅
+- CI passes ✅ → **automatically creates a PR** against `main` with a summary of the fix
 - Fix confidence drops below 80%
 - Max 5 iterations reached
 
@@ -265,7 +269,8 @@ The naive approach makes **3 separate Copilot calls** per iteration (analyze, ex
 - Fixes always require confirmation (unless explicitly overridden with `--yes` or `--auto`)
 - Low-confidence (<60%) or **HIGH-risk** patches are never auto-applied
 - Watch/auto mode stops if fix confidence drops below 80%
-- All changes go on a new `ci-fix/*` branch — `main` is never modified
+- All changes go on a new `ci-fix/*` branch — `main` is never modified directly
+- When CI passes, a PR is created against `main` for review before merging
 - `git apply --check` runs before any patch is applied
 - `.gitignore` excludes `.copilot-ci-doctor/cache/**` from commits
 

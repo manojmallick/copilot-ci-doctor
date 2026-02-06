@@ -1,6 +1,6 @@
 {
   "name": "copilot-ci-doctor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CLI tool that diagnoses GitHub Actions CI failures using GitHub Copilot CLI as the reasoning engine",
   "type": "module",
   "bin": {
@@ -25,6 +25,10 @@
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "execa": "^9.5.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manojmallick/copilot-ci-doctor"
   },
   "engines": {
     "node": ">=18.0.0"

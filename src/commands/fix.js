@@ -29,7 +29,10 @@ import { redact } from "../evidence/redact.js";
  * with "corrupt patch". This function fixes the headers.
  */
 function normalizePatch(patchText) {
-  const lines = patchText.split("\n");
+  // Strip \r for consistent line endings and trim trailing whitespace/newlines
+  // so split("\n") doesn't produce a phantom empty element that fixHunkHeader
+  // would mis-count as a context line.
+  const lines = patchText.replace(/\r/g, "").trimEnd().split("\n");
   const output = [];
   let hunkStart = -1;
 
@@ -53,7 +56,8 @@ function normalizePatch(patchText) {
     fixHunkHeader(output, hunkStart);
   }
 
-  return output.join("\n");
+  // Ensure the patch always ends with a newline (required by git apply)
+  return output.join("\n") + "\n";
 }
 
 function fixHunkHeader(lines, hunkIdx) {

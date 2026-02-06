@@ -5,22 +5,18 @@
  *   1. Clone/create a demo repo with an intentionally broken CI workflow
  *   2. Push to trigger a failing CI run
  *   3. Poll until the run fails (with timeout)
- *   4. Run analyze → explain → fix --yes → retry
- *   5. Print a final scoreboard
+ *   4. Hand off to `watch` which loops: analyze → explain → fix → push → verify
+ *   5. Watch prints a final scoreboard when CI passes or confidence drops
  *
- * Designed to complete in 30–45 seconds for contest judges.
+ * Designed to complete in 60–120 seconds for contest judges.
  */
 
 import chalk from "chalk";
 import { execa } from "execa";
 import fs from "node:fs";
 import path from "node:path";
-import { analyzeCommand } from "./analyze.js";
-import { explainCommand } from "./explain.js";
-import { fixCommand } from "./fix.js";
-import { retryCommand } from "./retry.js";
-import { readCache } from "../utils/paths.js";
-import { header, stepDivider, success, warn, dim } from "../utils/print.js";
+import { watchCommand } from "./watch.js";
+import { header, success, warn, dim } from "../utils/print.js";
 
 const DEMO_DIR_NAME = ".copilot-ci-doctor/demo-run";
 const DEMO_REPO_URL = "https://github.com/manojmallick/ci-doctor-demo";
@@ -28,11 +24,9 @@ const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 120_000;
 
 export async function demoCommand() {
-  const startTime = Date.now();
-
   try {
     header("🎬", "copilot-ci-doctor demo");
-    dim("End-to-end: create broken CI → analyze → explain → fix → retry\n");
+    dim("End-to-end: create broken CI → watch → auto-fix → verify passing\n");
 
     // Step 0 — Set up demo repo
     const demoDir = path.resolve(process.cwd(), DEMO_DIR_NAME);
@@ -74,24 +68,9 @@ export async function demoCommand() {
       dim("Found existing failed run — skipping push.\n");
     }
 
-    // Step 1 — Analyze
-    stepDivider(1, "Analyze");
-    await analyzeCommand();
-
-    // Step 2 — Explain
-    stepDivider(2, "Explain");
-    await explainCommand();
-
-    // Step 3 — Fix (auto-confirm for demo)
-    stepDivider(3, "Fix");
-    await fixCommand({ yes: true });
-
-    // Step 4 — Retry
-    stepDivider(4, "Retry");
-    await retryCommand();
-
-    // Step 5 — Scoreboard
-    printScoreboard(startTime);
+    // Hand off to watch — it will loop: analyze → explain → fix → push → wait
+    // until CI passes or confidence drops below 80%
+    await watchCommand();
 
   } catch (err) {
     console.error(chalk.red(`\n✖ Demo failed: ${err.message}`));
@@ -135,41 +114,6 @@ async function pollForFailure() {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Print a final scoreboard summarizing the demo results.
- */
-function printScoreboard(startTime) {
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-  console.log(chalk.bold.green("\n🎉 Demo complete!\n"));
-  console.log(chalk.bold("─── Scoreboard ───\n"));
-
-  // Pull data from cached responses
-  const hypotheses = readCache("latest-hypotheses.json");
-  const explain = readCache("latest-explain.json");
-  const patch = readCache("latest-patch.json");
-
-  if (hypotheses) {
-    const top = hypotheses.hypotheses[0];
-    console.log(`  ${chalk.bold("Top hypothesis:")} ${top.title} [${top.confidence}%]`);
-  }
-
-  if (explain) {
-    console.log(`  ${chalk.bold("Explanation:")} ${explain.summary}`);
-  }
-
-  if (patch) {
-    console.log(`  ${chalk.bold("Fix confidence:")} ${patch.confidence}%`);
-    console.log(`  ${chalk.bold("Fix:")} ${patch.description}`);
-    const filesChanged = (patch.patch.match(/^---\s+a\//gm) || []).length;
-    console.log(`  ${chalk.bold("Files changed:")} ${filesChanged}`);
-  }
-
-  console.log(`\n  ${chalk.bold("Total time:")} ${elapsed}s`);
-  console.log(chalk.dim("\n  CI before: ✖ FAILED → after fix: ⏳ RE-RUN TRIGGERED"));
-  console.log("");
 }
 
 /**
@@ -225,6 +169,13 @@ jobs:
   fs.writeFileSync(
     path.join(dir, "index.js"),
     `function add(a, b) { return a + b; }\nmodule.exports = { add };\n`,
+    "utf-8"
+  );
+
+  // .gitignore — skip committing cache files
+  fs.writeFileSync(
+    path.join(dir, ".gitignore"),
+    `.copilot-ci-doctor/cache/**\n`,
     "utf-8"
   );
 

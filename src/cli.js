@@ -13,6 +13,7 @@ import { analyzeCommand } from "./commands/analyze.js";
 import { explainCommand } from "./commands/explain.js";
 import { fixCommand } from "./commands/fix.js";
 import { retryCommand } from "./commands/retry.js";
+import { watchCommand } from "./commands/watch.js";
 import { demoCommand } from "./commands/demo.js";
 
 const program = new Command();
@@ -51,8 +52,13 @@ program
     "Generate a minimal patch to fix the CI failure and apply it on a new branch"
   )
   .option("--yes", "Auto-confirm without prompting (for scripting/demo)")
+  .option("--auto", "Full auto-fix mode: iterate analyze → explain → fix → push until CI passes")
   .action(async (options) => {
-    await fixCommand(options);
+    if (options.auto) {
+      await watchCommand({ autoFix: true });
+    } else {
+      await fixCommand(options);
+    }
   });
 
 // ── retry ────────────────────────────────────────────────────────────────────
@@ -63,11 +69,21 @@ program
     await retryCommand();
   });
 
+// ── watch ────────────────────────────────────────────────────────────────────
+program
+  .command("watch")
+  .description(
+    "Watch CI pipeline: auto-analyze, explain, and fix failures until CI passes or confidence drops below 80%"
+  )
+  .action(async () => {
+    await watchCommand();
+  });
+
 // ── demo ─────────────────────────────────────────────────────────────────────
 program
   .command("demo")
   .description(
-    "Run an end-to-end demo: clone broken repo → analyze → explain → fix → retry"
+    "Run an end-to-end demo: create broken repo → watch CI → auto-fix → verify passing"
   )
   .action(async () => {
     await demoCommand();

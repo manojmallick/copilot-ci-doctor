@@ -1,6 +1,12 @@
 # copilot-ci-doctor 🩺  
 **From Red CI to Green PR — with Evidence, Confidence, and Safe Fixes**
 
+## 🎬 40-Second Demo (End-to-End)
+
+![copilot-ci-doctor demo](./demo_1.5x.gif)
+
+> One command → failing CI → Copilot reasoning → safe fixes → green CI → PR
+
 **copilot-ci-doctor** is a CLI tool that diagnoses **GitHub Actions CI failures** using **GitHub Copilot CLI as its core reasoning engine**.
 
 Instead of manually digging through logs, Copilot CLI:

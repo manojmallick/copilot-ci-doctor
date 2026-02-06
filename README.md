@@ -365,6 +365,7 @@ copilot-ci-doctor/
   gh extension install github/gh-copilot
   gh copilot --help   # verify it works
   ```
+- **Permissions** — your `gh` account must be able to create repos and open PRs (`demo` creates a throwaway repo). If org restrictions prevent this, run `watch` inside an existing repo instead.
 
 ### Dependencies
 

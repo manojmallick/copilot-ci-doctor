@@ -6,7 +6,7 @@
  */
 
 export const RESPONSE_VERSION = "CI_DOCTOR_RESPONSE_V1";
-export const VALID_MODES = ["hypotheses", "explain", "patch"];
+export const VALID_MODES = ["hypotheses", "explain", "patch", "combined"];
 
 /**
  * Validate a parsed Copilot response against the CI_DOCTOR contract.
@@ -44,6 +44,10 @@ export function validateResponse(response, expectedMode) {
   } else if (expectedMode === "explain") {
     validateExplain(response);
   } else if (expectedMode === "patch") {
+    validatePatch(response);
+  } else if (expectedMode === "combined") {
+    validateHypotheses(response);
+    validateExplain(response);
     validatePatch(response);
   }
 }

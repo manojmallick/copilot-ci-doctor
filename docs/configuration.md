@@ -19,6 +19,7 @@
 | Skip the confirmation | `--yes` | ask | `fix`, `demo` |
 | Machine-readable output | `--json` | off | `analyze`, `explain`, `fix`, `watch` |
 | Public demo repository | `--public` | private | `demo` |
+| Remove the demo project and repository | `--cleanup` | off | `demo` |
 
 Invalid values (a non-numeric `--run-id`, `--min-confidence 150`, a branch starting with `-`) are rejected before anything runs, with exit code 1. Full descriptions and examples: [commands](commands.md).
 
@@ -59,7 +60,7 @@ Everything goes under `.copilot-ci-doctor/cache/` in the directory where you run
 | `git-apply-error.txt` | `fix`, `watch` | Output of a failed `git apply --check` |
 | `copilot-raw-output-debug.txt` | any command that calls Copilot | Redacted raw Copilot output, only when the reply could not be parsed |
 
-`demo` also creates `.copilot-ci-doctor/demo-run/`. Delete `.copilot-ci-doctor/` at any time; it is rebuilt on the next run.
+`demo` also creates `.copilot-ci-doctor/demo-run/`, and `.copilot-ci-doctor/demo-repo.json` when it created a GitHub repository (used by `demo --cleanup`). Delete `.copilot-ci-doctor/` at any time; it is rebuilt on the next run.
 
 ## Exit codes
 

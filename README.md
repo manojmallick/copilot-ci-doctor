@@ -28,7 +28,7 @@ copilot-ci-doctor explain      # plain-English explanation
 copilot-ci-doctor fix          # preview the patch, confirm, apply on a ci-fix/* branch
 ```
 
-> **`demo` may create a repository on your GitHub account** (named `ci-doctor-demo-<timestamp>`, private unless you pass `--public`) if it cannot push the demo project elsewhere. It asks first; `--yes` skips the question. Delete the repository afterwards.
+> **`demo` may create a repository on your GitHub account** (named `ci-doctor-demo-<timestamp>`, private unless you pass `--public`) if it cannot push the demo project elsewhere. It asks first; `--yes` skips the question. Remove it afterwards with `copilot-ci-doctor demo --cleanup`.
 
 <details>
 <summary>Example output of a <code>watch</code> run</summary>
@@ -94,17 +94,19 @@ Full walkthrough: [docs/how-it-works.md](https://github.com/manojmallick/copilot
 | Command | What it does |
 |---|---|
 | `npm start` | Run the CLI from source (`node src/cli.js`) |
+| `npm test` | Unit, integration and end-to-end tests (Node's built-in runner; no network, no Copilot) |
+| `npm run lint` | ESLint |
 | `npm run test:bin` | Smoke test: runs `src/cli.js --help` |
-| `npm run prepublishOnly` | Runs `test:bin` automatically before `npm publish` |
-
-## 🧠 How GitHub Copilot CLI is used (core requirement)
+| `npm run prepublishOnly` | Runs `npm test` automatically before `npm publish` |
+| `cd docs-vp && npm install && npm run docs:dev` | Preview the documentation site (generated from `docs/`) |
 
 ## Requirements
 
 - **Node.js 18 or newer**
 - **[GitHub CLI](https://cli.github.com)** (`gh`), authenticated with `gh auth login`
 - **GitHub Copilot access.** The old `gh-copilot` extension has been retired. Current versions of `gh` run the standalone GitHub Copilot CLI through `gh copilot` and offer to install it on first use. This tool calls `gh copilot -p … -s`, so run `gh copilot` once on its own to complete that setup and sign in, and check that it works before using `copilot-ci-doctor`. Copilot CLI availability depends on your Copilot plan; see GitHub's [Copilot CLI documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli).
-- Run commands **inside a git clone** of a GitHub repository that has a failed Actions run. Your `gh` account needs permission to push branches and open pull requests there.
+- Run commands **inside a git clone** of a GitHub repository that has a failed Actions run. Your `gh` account needs permission to push branches and open pull requests there, and the `workflow` scope if a fix edits files in `.github/workflows/` (see the [FAQ](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/faq.md#permissions-in-detail)).
+- **Platform:** developed and tested on macOS and Linux. Windows is untested; use WSL or Git Bash if you hit problems.
 
 ## Limitations
 
@@ -125,6 +127,7 @@ The same pages are published at [manojmallick.github.io/copilot-ci-doctor](https
 |---|---|
 | [docs/commands.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/commands.md) | Every command, flags, examples, exit behaviour, cache files |
 | [docs/how-it-works.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/how-it-works.md) | Evidence bundle, Copilot usage, JSON contract, patch handling, token savings, code layout |
+| [docs/faq.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/faq.md) | FAQ: what is sent, permissions, exit codes, Windows, cleanup |
 | [docs/README.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/README.md) | Index of all documentation and where to find answers |
 | [docs/configuration.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/configuration.md) | Option defaults, fixed limits, credentials, files written |
 | [docs/github-action.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/github-action.md) | Run it in CI: post a diagnosis as a pull request comment |

@@ -79,6 +79,9 @@ if (cmd === "--version") {
   out(sc.workflowYaml || "name: CI\non: push\n");
 } else if (cmd === "pr" && sub === "create") {
   out("https://github.com/example/repo/pull/7\n");
+} else if (cmd === "repo" && sub === "delete") {
+  if (sc.failRepoDelete) die("HTTP 403: Must have admin rights to Repository. Needs the delete_repo scope.");
+  out("deleted\n");
 } else if (cmd === "repo" && sub === "create") {
   if (sc.failRepoCreate) die("repo create is not allowed in this test");
   out("created\n");

@@ -152,3 +152,51 @@ test("watch --min-confidence above the patch confidence stops with exit 2", opts
   assert.deepEqual(sb.branches(), ["main"]);
   assert.deepEqual(sb.originBranches(), ["main"]);
 }));
+
+function writeDemoRecord(sb, repo) {
+  const dir = path.join(sb.repo, ".copilot-ci-doctor");
+  fs.mkdirSync(path.join(dir, "demo-run"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "demo-repo.json"), JSON.stringify({ repo }));
+  return dir;
+}
+const deletes = (sb) => sb.calls().filter((c) => c[0] === "repo" && c[1] === "delete");
+
+test("demo --cleanup --yes deletes the recorded demo repo and the local folder", opts, () => withSandbox({}, (sb) => {
+  const dir = writeDemoRecord(sb, "octocat/ci-doctor-demo-1700000000000");
+  const r = sb.run(["demo", "--cleanup", "--yes"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(deletes(sb).map((c) => c[2]), ["octocat/ci-doctor-demo-1700000000000"]);
+  assert.ok(!fs.existsSync(path.join(dir, "demo-run")));
+  assert.ok(!fs.existsSync(path.join(dir, "demo-repo.json")));
+}));
+
+test("demo --cleanup without --yes and without a terminal keeps the GitHub repo (exit 2)", opts, () => withSandbox({}, (sb) => {
+  const dir = writeDemoRecord(sb, "octocat/ci-doctor-demo-1700000000000");
+  const r = sb.run(["demo", "--cleanup"]);
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.deepEqual(deletes(sb), []);
+  assert.ok(fs.existsSync(path.join(dir, "demo-repo.json")), "record kept so cleanup can be retried");
+  assert.ok(!fs.existsSync(path.join(dir, "demo-run")), "local folder is still removed");
+}));
+
+test("demo --cleanup never deletes a repository that is not a ci-doctor-demo-<number> repo", opts, () => withSandbox({}, (sb) => {
+  for (const repo of ["octocat/important-project", "octocat/ci-doctor-demo-abc", "ci-doctor-demo-123", "../../x"]) {
+    writeDemoRecord(sb, repo);
+    const r = sb.run(["demo", "--cleanup", "--yes"]);
+    assert.equal(r.status, 2, repo);
+  }
+  assert.deepEqual(deletes(sb), []);
+}));
+
+test("demo --cleanup reports a failed delete with the scope hint (exit 1)", opts, () => withSandbox({ failRepoDelete: true }, (sb) => {
+  writeDemoRecord(sb, "octocat/ci-doctor-demo-1700000000000");
+  const r = sb.run(["demo", "--cleanup", "--yes"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /delete_repo/);
+}));
+
+test("demo --cleanup with nothing recorded just succeeds", opts, () => withSandbox({}, (sb) => {
+  const r = sb.run(["demo", "--cleanup", "--yes"]);
+  assert.equal(r.status, 0);
+  assert.deepEqual(deletes(sb), []);
+}));

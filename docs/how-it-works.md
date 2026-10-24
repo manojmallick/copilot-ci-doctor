@@ -71,7 +71,7 @@ The combined reply is split into `latest-hypotheses.json`, `latest-explain.json`
 ```
 src/
 ├── cli.js                 Entry point (commander); keeps logic out of this file
-├── commands/              analyze, explain, fix, watch, retry, demo
+├── commands/              analyze, explain, fix, watch, retry, demo (incl. demo --cleanup)
 ├── copilot/
 │   ├── invoke.js          Runs `gh copilot -p ... -s` with a timeout
 │   ├── index.js           Prompt, invoke, extract JSON, validate
@@ -83,9 +83,16 @@ src/
 │   └── redact.js          Secret redaction
 ├── prompts/loadPrompt.js  Template loader
 └── utils/
+    ├── options.js         Option parsers and the exit codes (0, 1, 2)
+    ├── output.js          --json mode: one JSON document on stdout
     ├── patch.js           Hunk-header normalisation; files touched by a patch
     ├── paths.js           Path and cache helpers
-    └── print.js           Terminal output
+    ├── print.js           Terminal output
+    └── prompt.js          Yes/no confirmation (declines without a terminal)
 prompts/                   The four prompt templates
-test/                      Unit and git integration tests (node --test)
+action/                    render-comment.js: builds the pull request comment (used by action.yml)
+action.yml                 Composite GitHub Action (experimental)
+scripts/sync-docs.mjs      Builds the docs site pages from docs/
+docs-vp/                   VitePress site (config, landing page); guide pages are generated
+test/                      Unit, git integration and end-to-end tests (node --test); helpers/ has a fake gh
 ```

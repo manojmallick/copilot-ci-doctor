@@ -76,7 +76,10 @@ export default defineConfig({
       },
       {
         text: 'Help',
-        items: [{ text: 'Troubleshooting', link: '/guide/troubleshooting' }],
+        items: [
+          { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+          { text: 'FAQ', link: '/guide/faq' },
+        ],
       },
       {
         text: 'Project',

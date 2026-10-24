@@ -49,7 +49,7 @@ The model's reply was not a valid unified diff (no `---`/`+++` file headers), so
 
 ## The demo created a repository
 
-When `demo` cannot push elsewhere and you agree (or pass `--yes`), it creates `ci-doctor-demo-<timestamp>`: private by default, public only with `--public`. Remove it with `gh repo delete <name>`. If you answered no, or there was no terminal and no `--yes`, nothing was created.
+When `demo` cannot push elsewhere and you agree (or pass `--yes`), it creates `ci-doctor-demo-<timestamp>`: private by default, public only with `--public`. Remove it with `copilot-ci-doctor demo --cleanup` (run it from the same directory), which asks before deleting. Deleting needs the `delete_repo` permission: `gh auth refresh -h github.com -s delete_repo`; or delete it by hand with `gh repo delete <name>`. If you answered no, or there was no terminal and no `--yes`, nothing was created.
 
 ## `fix` did nothing and exited with 2
 

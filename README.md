@@ -65,6 +65,8 @@ copilot-ci-doctor fix          # preview the patch, confirm, apply on a ci-fix/*
 
 Useful options: `--repo`, `--run-id` and `--branch` pick the run to inspect; `--json` prints machine-readable output; exit code `0` means done, `1` error, `2` ran but did not fix.
 
+📖 **Docs site:** [manojmallick.github.io/copilot-ci-doctor](https://manojmallick.github.io/copilot-ci-doctor/)
+
 Details, flags and examples: [docs/commands.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/commands.md).
 
 ## Use it in CI
@@ -116,6 +118,8 @@ Full walkthrough: [docs/how-it-works.md](https://github.com/manojmallick/copilot
 Common problems (Copilot CLI not found, `gh` not authenticated, patches that fail `git apply --check`, no failed run found) are covered in [docs/troubleshooting.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/troubleshooting.md).
 
 ## Documentation
+
+The same pages are published at [manojmallick.github.io/copilot-ci-doctor](https://manojmallick.github.io/copilot-ci-doctor/) (built from `docs/`).
 
 | Document | Contents |
 |---|---|

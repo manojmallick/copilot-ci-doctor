@@ -28,6 +28,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `watch` now opens its pull request against the repository's default branch instead of always using `main`.
 
 ### Documentation
+- Documentation site (VitePress, GitHub Pages) built from `docs/` by `scripts/sync-docs.mjs`; deployed by `.github/workflows/docs.yml`. Pull requests only build it, so a dead link fails the PR.
 - Added `docs/README.md` (index) and `docs/configuration.md` (defaults, fixed limits, credentials, files written). Corrected the troubleshooting entry that said there is no branch option.
 - Corrected the README and hackathon notes, which still said `demo` creates a public repository (it asks first and is private by default since the options update).
 - Restructured the README for everyday use and moved the details to `docs/`: commands, how it works, safety and privacy, troubleshooting, releasing.

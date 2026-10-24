@@ -121,6 +121,8 @@ Common problems (Copilot CLI not found, `gh` not authenticated, patches that fai
 |---|---|
 | [docs/commands.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/commands.md) | Every command, flags, examples, exit behaviour, cache files |
 | [docs/how-it-works.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/how-it-works.md) | Evidence bundle, Copilot usage, JSON contract, patch handling, token savings, code layout |
+| [docs/README.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/README.md) | Index of all documentation and where to find answers |
+| [docs/configuration.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/configuration.md) | Option defaults, fixed limits, credentials, files written |
 | [docs/github-action.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/github-action.md) | Run it in CI: post a diagnosis as a pull request comment |
 | [docs/examples.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/examples.md) | Worked examples: missing lockfile, failing test, lint error |
 | [docs/safety-and-privacy.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/safety-and-privacy.md) | Guarantees, what is sent to Copilot, redaction patterns |

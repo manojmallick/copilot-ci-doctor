@@ -21,7 +21,7 @@ Run the command from inside a git clone of a GitHub repository, and make sure `g
 
 ## No failed run found
 
-The tool works on the latest failed GitHub Actions run of the current repository. Check `gh run list --status failure --limit 3`. If runs fail on a branch other than your current checkout, note that there is no branch option yet.
+By default the tool works on the latest failed GitHub Actions run of the current repository (it looks at the 20 most recent failures). Check `gh run list --status failure --limit 3`. If the failure is on another branch, pass `--branch <name>`; to pick one run use `--run-id <id>`, and to look at a different repository use `--repo OWNER/NAME` (`analyze`, `explain`, `retry`). With `--json` the problem is reported as `{"ok": false, "error": ...}` and exit code 1.
 
 ## "No cached evidence bundle found" (explain)
 

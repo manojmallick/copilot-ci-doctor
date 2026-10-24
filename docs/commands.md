@@ -115,11 +115,16 @@ Re-runs a failed workflow run (`gh run rerun --failed`): the latest failure by d
 copilot-ci-doctor demo          # asks before creating anything on GitHub
 copilot-ci-doctor demo --yes    # create a private repository without asking
 copilot-ci-doctor demo --yes --public
+copilot-ci-doctor demo --cleanup        # remove the demo project and the repository it created
 ```
 
 Creates a small project with a deliberately broken workflow in `.copilot-ci-doctor/demo-run/`, pushes it to trigger CI, waits for the failure and hands over to `watch`.
 
-> **Side effect:** if the demo project cannot be pushed to an existing remote, the command offers to run `gh repo create ci-doctor-demo-<timestamp> --private` and push there. It asks first; `--yes` answers for you, and without a terminal and without `--yes` the demo stops and creates nothing. The repository is **private** unless you pass `--public`. Delete it when you are done (`gh repo delete <name>`).
+> **Side effect:** if the demo project cannot be pushed to an existing remote, the command offers to run `gh repo create ci-doctor-demo-<timestamp> --private` and push there. It asks first; `--yes` answers for you, and without a terminal and without `--yes` the demo stops and creates nothing. The repository is **private** unless you pass `--public`. The name is remembered in `.copilot-ci-doctor/demo-repo.json` so you can remove it later with `demo --cleanup`.
+
+### `demo --cleanup`
+
+Removes `.copilot-ci-doctor/demo-run/` and, after asking, **permanently deletes** the GitHub repository that `demo` created (`gh repo delete`). `--yes` skips the question; without a terminal and without `--yes` the repository is kept and the command exits `2`. Only a repository named `ci-doctor-demo-<number>` that `demo` itself recorded is ever deleted, never anything else. Deleting needs the `delete_repo` permission: `gh auth refresh -h github.com -s delete_repo`. It exits `0` when done, `1` when GitHub refused the deletion and `2` when the repository was kept.
 
 ## Exit codes
 

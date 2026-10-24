@@ -18,8 +18,13 @@ import path from "node:path";
 import { watchCommand } from "./watch.js";
 import { header, success, warn, dim } from "../utils/print.js";
 import { confirm } from "../utils/prompt.js";
+import { EXIT } from "../utils/options.js";
 
 const DEMO_DIR_NAME = ".copilot-ci-doctor/demo-run";
+/** Remembers the repository `demo` created, so `demo --cleanup` can find it again. */
+const DEMO_RECORD_NAME = ".copilot-ci-doctor/demo-repo.json";
+/** Only repositories with this name are ever deleted by `demo --cleanup`. */
+const DEMO_REPO_PATTERN = /^[A-Za-z0-9_.-]+\/ci-doctor-demo-\d+$/;
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 120_000;
 
@@ -34,7 +39,8 @@ export async function demoCommand(options = {}) {
     dim("End-to-end: create broken CI → watch → auto-fix → verify passing\n");
 
     // Step 0 — Set up demo repo
-    const demoDir = path.resolve(process.cwd(), DEMO_DIR_NAME);
+    const startDir = process.cwd();
+    const demoDir = path.resolve(startDir, DEMO_DIR_NAME);
 
     if (fs.existsSync(demoDir)) {
       dim(`Removing stale demo directory: ${demoDir}`);
@@ -69,7 +75,8 @@ export async function demoCommand(options = {}) {
         }
         await execa("gh", ["repo", "create", repoName, `--${visibility}`, "--source=.", "--push"]);
         success(`Created ${visibility} GitHub repo: ${repoName}`);
-        dim(`Delete it when you are done: gh repo delete ${repoName}`);
+        await recordDemoRepo(startDir, repoName);
+        dim("Delete it when you are done: copilot-ci-doctor demo --cleanup");
       }
 
       // Poll for failure
@@ -90,6 +97,73 @@ export async function demoCommand(options = {}) {
     console.error(chalk.red(`\n✖ Demo failed: ${err.message}`));
     process.exit(1);
   }
+}
+
+/** Save the full name (OWNER/NAME) of the repository that was just created. */
+async function recordDemoRepo(startDir, repoName) {
+  let nameWithOwner = repoName;
+  try {
+    const { stdout } = await execa("gh", ["repo", "view", "--json", "nameWithOwner"]);
+    nameWithOwner = JSON.parse(stdout).nameWithOwner || repoName;
+  } catch {
+    // keep the bare name; cleanup refuses anything it cannot match to the demo pattern
+  }
+  const file = path.join(startDir, DEMO_RECORD_NAME);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ repo: nameWithOwner, createdAt: new Date().toISOString() }, null, 2));
+}
+
+/**
+ * `copilot-ci-doctor demo --cleanup`: remove the local demo project and, after asking,
+ * the GitHub repository that `demo` created.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.yes] Delete the GitHub repository without asking.
+ * @returns {Promise<number>} exit code
+ */
+export async function demoCleanup(options = {}) {
+  header("🧹", "copilot-ci-doctor demo --cleanup");
+  const startDir = process.cwd();
+  const demoDir = path.resolve(startDir, DEMO_DIR_NAME);
+  const recordFile = path.join(startDir, DEMO_RECORD_NAME);
+  let exitCode = EXIT.OK;
+
+  if (fs.existsSync(recordFile)) {
+    let repo = null;
+    try {
+      repo = JSON.parse(fs.readFileSync(recordFile, "utf-8")).repo;
+    } catch {
+      /* unreadable record: treated as missing */
+    }
+    if (!repo || !DEMO_REPO_PATTERN.test(repo)) {
+      warn("The demo record does not name a ci-doctor-demo-<number> repository; not deleting anything on GitHub.");
+      exitCode = EXIT.NOT_FIXED;
+    } else {
+      const allowed = options.yes || await confirm(chalk.yellow(`Permanently delete the GitHub repository ${repo}?`));
+      if (!allowed) {
+        warn(`Kept ${repo}. Re-run with --yes to delete it without asking.`);
+        exitCode = EXIT.NOT_FIXED;
+      } else {
+        try {
+          await execa("gh", ["repo", "delete", repo, "--yes"]);
+          success(`Deleted GitHub repository ${repo}`);
+          fs.rmSync(recordFile, { force: true });
+        } catch (err) {
+          warn(`Could not delete ${repo}: ${err.shortMessage || err.message}`);
+          dim("Deleting needs the delete_repo permission: gh auth refresh -h github.com -s delete_repo");
+          exitCode = EXIT.ERROR;
+        }
+      }
+    }
+  } else {
+    dim("No GitHub repository was recorded by `demo`, so nothing to delete there.");
+  }
+
+  if (fs.existsSync(demoDir)) {
+    fs.rmSync(demoDir, { recursive: true, force: true });
+    success(`Removed ${demoDir}`);
+  }
+  return exitCode;
 }
 
 /**

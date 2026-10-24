@@ -8,7 +8,7 @@
 
 ## Checklist
 
-- [ ] `npm test` passes
+- [ ] `npm run lint` and `npm test` pass
 - [ ] Docs updated (`README.md` or `docs/`) if behaviour changed
 - [ ] `CHANGELOG.md` has an entry under **Unreleased**
 - [ ] No secrets or unredacted logs added to code, tests or docs

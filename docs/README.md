@@ -9,6 +9,7 @@ Start with the [README](../README.md) for the pitch and the quick start, then us
 - [Configuration](./configuration.md): option defaults, fixed limits, credentials, files written
 - [Run it in GitHub Actions](./github-action.md): post a diagnosis as a pull request comment (experimental)
 - [Troubleshooting](./troubleshooting.md): messages you may see and how to fix them
+- [FAQ](./faq.md): what is sent, permissions, exit codes, Windows, cleanup
 
 ## Understanding it
 
@@ -32,4 +33,5 @@ Start with the [README](../README.md) for the pitch and the quick start, then us
 | Use it from a script or CI | [Commands: scripting](./commands.md#scripting-and---json), [GitHub Action](./github-action.md) |
 | Know exactly what leaves my machine | [Safety and privacy](./safety-and-privacy.md) |
 | Fix an error message | [Troubleshooting](./troubleshooting.md) |
+| Check permissions or whether it works on my setup | [FAQ](./faq.md) |
 | Change a threshold or limit | [Configuration](./configuration.md) |

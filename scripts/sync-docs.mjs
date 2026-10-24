@@ -22,6 +22,7 @@ const DESCRIPTIONS = {
   "how-it-works.md": "The evidence bundle, how Copilot CLI is called, the JSON contract and patch handling.",
   "safety-and-privacy.md": "Safeguards, what is sent to GitHub Copilot, and what secret redaction covers and misses.",
   "troubleshooting.md": "Fixes for common copilot-ci-doctor errors: gh, Copilot CLI, patches and confidence gates.",
+  "faq.md": "Answers to common questions: what is sent to Copilot, GitHub permissions, exit codes, Windows and cleanup.",
   "HACKATHON.md": "Notes written for the hackathon judges.",
   "RELEASING.md": "How maintainers publish copilot-ci-doctor to npm.",
 };

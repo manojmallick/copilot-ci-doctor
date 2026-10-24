@@ -4,11 +4,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-10-24
+
 ### Security
 - `fix` and `watch` now stage only the files named in the patch (`git add -- <files>`) instead of `git add -A`. Unrelated local changes and the `.copilot-ci-doctor/` cache folder can no longer end up in a fix commit. If the changed files cannot be determined, nothing is applied.
 - Redaction rules grew from 12 to 21: added OpenAI/Anthropic project keys, Slack, Stripe, Google API, GitLab, Azure, AWS secret keys, JSON Web Tokens, Basic auth and passwords inside URLs. The OpenAI rule now matches any `sk-…` key of 20 or more characters, not only the old 48-character form.
 
 ### Added
+- `demo --cleanup`: removes the local demo project and, after asking, deletes the repository `demo` created. It remembers the name in `.copilot-ci-doctor/demo-repo.json` and only ever deletes a repository named `ci-doctor-demo-<number>`. Needs the `delete_repo` permission for the GitHub part.
+- `npm run lint` (ESLint 9), run in CI on Node 22.
+- `docs/faq.md`: what is sent, GitHub permissions (including the `workflow` scope for fixes that edit workflow files), exit codes, Windows status and cleanup.
 - `action.yml`: an experimental composite GitHub Action that runs `analyze --json` on a failed workflow run and posts (or updates) a pull request comment. See `docs/github-action.md`.
 - `docs/examples.md`: three worked examples (missing lockfile, failing test, lint error) and a `docs/github-action.md` guide.
 - Options: `analyze --repo/--run-id/--branch`, `explain`/`retry` with the same selectors, `fix --dry-run/--min-confidence/--json`, `watch --max-iterations/--min-confidence/--poll-interval/--poll-timeout/--base/--no-pr/--dry-run/--json`, and `demo --yes/--public`. `--json` prints a single JSON document on stdout with progress on stderr; `--help` lists the exit codes.
@@ -28,6 +33,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - `watch` now opens its pull request against the repository's default branch instead of always using `main`.
 
 ### Documentation
+- The demo GIF in the README and on the site is 2.4 MB (it was 12 MB): 6 frames per second at 640 px, sped up about 6 times.
+- README: platform note (macOS and Linux tested, Windows untested) and the `workflow` scope requirement.
 - Documentation site (VitePress, GitHub Pages) built from `docs/` by `scripts/sync-docs.mjs`; deployed by `.github/workflows/docs.yml`. Pull requests only build it, so a dead link fails the PR.
 - Added `docs/README.md` (index) and `docs/configuration.md` (defaults, fixed limits, credentials, files written). Corrected the troubleshooting entry that said there is no branch option.
 - Corrected the README and hackathon notes, which still said `demo` creates a public repository (it asks first and is private by default since the options update).

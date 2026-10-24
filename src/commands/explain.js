@@ -14,10 +14,9 @@ import { header, confidenceColor, fail } from "../utils/print.js";
 import { emitJson } from "../utils/output.js";
 
 /**
- * @param {object} [options]
- * @param {boolean} [options.json] Print one JSON document on stdout.
+ * JSON mode (`--json`) is switched on by the CLI before this runs; see `isJsonMode()`.
  */
-export async function explainCommand(options = {}) {
+export async function explainCommand() {
   try {
     header("💡", "copilot-ci-doctor explain");
 

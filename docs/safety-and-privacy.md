@@ -41,7 +41,7 @@ That is 21 rules. Redaction is **best effort**: it recognises credential *format
 ## Known gaps to be aware of
 
 - **Model output.** Patches are written by a language model. Treat every patch and every pull request like code from an unknown contributor: read it before merging.
-- **`demo`** may create a GitHub repository on your account. It asks first (or needs `--yes`) and the repository is private unless you pass `--public`; see [commands](commands.md#demo).
+- **`demo`** may create a GitHub repository on your account. It asks first (or needs `--yes`) and the repository is private unless you pass `--public`; `demo --cleanup` removes it again, asking first and deleting only a repository named `ci-doctor-demo-<number>` that `demo` recorded; see [commands](commands.md#demo).
 
 ## Reporting a vulnerability
 

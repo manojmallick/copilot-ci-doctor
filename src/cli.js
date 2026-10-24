@@ -15,7 +15,7 @@ import { explainCommand } from "./commands/explain.js";
 import { fixCommand } from "./commands/fix.js";
 import { retryCommand } from "./commands/retry.js";
 import { watchCommand } from "./commands/watch.js";
-import { demoCommand } from "./commands/demo.js";
+import { demoCommand, demoCleanup } from "./commands/demo.js";
 import { WATCH_DEFAULTS } from "./commands/watch.js";
 import { enableJsonMode } from "./utils/output.js";
 import { intInRange, numberInRange, parseRepo, parseRunId, parseBranch } from "./utils/options.js";
@@ -73,7 +73,8 @@ program
   )
   .option(...optJson)
   .action(async (options) => {
-    await explainCommand(prepare(options));
+    prepare(options);
+    await explainCommand();
   });
 
 // ── fix ──────────────────────────────────────────────────────────────────────
@@ -139,7 +140,12 @@ program
   )
   .option("--yes", "Create the demo GitHub repository without asking")
   .option("--public", "Make the demo repository public (default: private)")
+  .option("--cleanup", "Remove the local demo project and delete the GitHub repository that demo created (asks first)")
   .action(async (options) => {
+    if (options.cleanup) {
+      process.exitCode = await demoCleanup(options);
+      return;
+    }
     await demoCommand(options);
   });
 

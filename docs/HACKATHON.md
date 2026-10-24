@@ -12,7 +12,7 @@ npx copilot-ci-doctor demo
 
 What `demo` does: creates a throwaway project with an intentionally broken GitHub Actions workflow, pushes it so CI fails, then runs the `watch` loop (analyze, explain, fix, push, wait) until CI is green, and opens a pull request. It does not touch your existing repositories.
 
-> `demo` can create a repository named `ci-doctor-demo-<timestamp>` on your account. It asks first (or needs `--yes`) and it is private unless you pass `--public`. Delete it afterwards with `gh repo delete`.
+> `demo` can create a repository named `ci-doctor-demo-<timestamp>` on your account. It asks first (or needs `--yes`) and it is private unless you pass `--public`. Remove it afterwards with `copilot-ci-doctor demo --cleanup` (or `gh repo delete`).
 
 Cache files, patches and debug output are written under `.copilot-ci-doctor/cache/` inside the demo project, which the demo's own `.gitignore` excludes.
 

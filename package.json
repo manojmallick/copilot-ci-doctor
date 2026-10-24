@@ -1,6 +1,6 @@
 {
   "name": "copilot-ci-doctor",
-  "version": "1.1.6",
+  "version": "1.2.0",
   "description": "CLI tool that diagnoses GitHub Actions CI failures using GitHub Copilot CLI as the reasoning engine",
   "keywords": [
     "github-actions",
@@ -32,7 +32,8 @@
     "test": "node --test test/*.test.js",
     "test:bin": "node src/cli.js --help",
     "check": "node --check src/cli.js",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "lint": "eslint ."
   },
   "publishConfig": {
     "access": "public",
@@ -50,5 +51,10 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0"
+  }
 }

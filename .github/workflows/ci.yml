@@ -34,6 +34,10 @@ jobs:
       - name: Syntax check every source file
         run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Lint
+        if: matrix.node == '22'   # ESLint 9 needs a recent Node; the code itself is tested on all three
+        run: npm run lint
+
       - name: Run tests
         run: npm test
 

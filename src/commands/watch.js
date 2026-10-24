@@ -17,15 +17,20 @@ import fs from "node:fs";
 import { buildEvidenceBundle, cacheBundle } from "../evidence/bundle.js";
 import { askCopilot } from "../copilot/index.js";
 import { writeCache, readCache, ensureCacheDir, cachePath } from "../utils/paths.js";
-import { header, stepDivider, success, warn, dim, confidenceColor, printDiff, printEvidenceSummary } from "../utils/print.js";
+import { header, stepDivider, success, warn, dim, fail, confidenceColor, printDiff, printEvidenceSummary } from "../utils/print.js";
 import { redact } from "../evidence/redact.js";
 import { getRepoInfo, pickBaseBranch } from "../evidence/githubRepo.js";
 import { normalizePatch, patchFilePaths } from "../utils/patch.js";
+import { emitJson } from "../utils/output.js";
+import { EXIT } from "../utils/options.js";
 
-const POLL_INTERVAL_MS = 10_000;
-const POLL_TIMEOUT_MS = 180_000;
-const MIN_CONFIDENCE = 80;
-const MAX_ITERATIONS = 5;
+/** Defaults; every one can be changed with a command-line option. */
+export const WATCH_DEFAULTS = Object.freeze({
+  maxIterations: 5,
+  minConfidence: 80,
+  pollIntervalSeconds: 10,
+  pollTimeoutSeconds: 180,
+});
 
 // Token estimation constants (approximate for GPT-4 class models)
 // ~4 chars per token on average for English + JSON
@@ -64,10 +69,10 @@ async function getLatestRun() {
 /**
  * Wait for a run to complete. Returns the final conclusion.
  */
-async function waitForRunCompletion(knownRunId) {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
+async function waitForRunCompletion(knownRunId, cfg) {
+  const deadline = Date.now() + cfg.pollTimeoutMs;
   while (Date.now() < deadline) {
-    await sleep(POLL_INTERVAL_MS);
+    await sleep(cfg.pollIntervalMs);
     process.stdout.write(chalk.dim("."));
     const run = await getLatestRun();
     if (!run) continue;
@@ -83,13 +88,13 @@ async function waitForRunCompletion(knownRunId) {
 /**
  * Wait for a NEW run to appear and complete.
  */
-async function waitForNewRunToComplete(previousRunId) {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
+async function waitForNewRunToComplete(previousRunId, cfg) {
+  const deadline = Date.now() + cfg.pollTimeoutMs;
 
   dim("Waiting for new CI run to start…");
   let newRunId = null;
   while (Date.now() < deadline) {
-    await sleep(POLL_INTERVAL_MS);
+    await sleep(cfg.pollIntervalMs);
     process.stdout.write(chalk.dim("."));
     const run = await getLatestRun();
     if (run && run.id !== previousRunId) {
@@ -106,9 +111,9 @@ async function waitForNewRunToComplete(previousRunId) {
   }
 
   dim("Waiting for run to complete…");
-  const completionDeadline = Date.now() + POLL_TIMEOUT_MS;
+  const completionDeadline = Date.now() + cfg.pollTimeoutMs;
   while (Date.now() < completionDeadline) {
-    await sleep(POLL_INTERVAL_MS);
+    await sleep(cfg.pollIntervalMs);
     process.stdout.write(chalk.dim("."));
     try {
       const { stdout } = await execa("gh", [
@@ -130,7 +135,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * @param {object} [options]
+ * @param {number}  [options.maxIterations]  Fix attempts before giving up (default 5).
+ * @param {number}  [options.minConfidence]  Stop when a fix is below this confidence (default 80).
+ * @param {number}  [options.pollInterval]   Seconds between CI status checks (default 10).
+ * @param {number}  [options.pollTimeout]    Seconds to wait for a CI run (default 180).
+ * @param {string}  [options.base]           Branch for the pull request (default: the repository default branch).
+ * @param {boolean} [options.pr]             Open a pull request when CI is fixed (default true; --no-pr turns it off).
+ * @param {boolean} [options.dryRun]         Diagnose and check the patch, but do not branch, commit or push.
+ * @param {boolean} [options.json]           Print one JSON document on stdout.
+ */
 export async function watchCommand(options = {}) {
+  const MAX_ITERATIONS = options.maxIterations ?? WATCH_DEFAULTS.maxIterations;
+  const MIN_CONFIDENCE = options.minConfidence ?? WATCH_DEFAULTS.minConfidence;
+  const cfg = {
+    pollIntervalMs: (options.pollInterval ?? WATCH_DEFAULTS.pollIntervalSeconds) * 1000,
+    pollTimeoutMs: (options.pollTimeout ?? WATCH_DEFAULTS.pollTimeoutSeconds) * 1000,
+  };
   const startTime = Date.now();
   let iteration = 0;
   const history = [];
@@ -152,12 +174,12 @@ export async function watchCommand(options = {}) {
 
       if (!run) {
         warn("No CI runs found. Waiting for a run…\n");
-        const conclusion = await waitForRunCompletion(null);
+        const conclusion = await waitForRunCompletion(null, cfg);
         if (conclusion === "timeout") { warn("Timed out waiting for a CI run."); break; }
         if (conclusion === "success") { success("CI passed!"); history.push({ iteration, outcome: "success" }); break; }
       } else if (run.status !== "completed") {
         dim(`Run in progress: ${run.workflow} (#${run.id}) — waiting…`);
-        const conclusion = await waitForRunCompletion(run.id);
+        const conclusion = await waitForRunCompletion(run.id, cfg);
         if (conclusion === "timeout") { warn("Timed out waiting for run to complete."); break; }
         if (conclusion === "success") { success("CI passed!"); history.push({ iteration, outcome: "success" }); break; }
         dim(`Run failed (${conclusion}). Starting diagnosis…\n`);
@@ -287,6 +309,13 @@ export async function watchCommand(options = {}) {
         break;
       }
 
+      if (options.dryRun) {
+        success(`Dry run: the patch applies cleanly to ${touched.length} file(s): ${touched.join(", ")}`);
+        dim("Nothing was changed: no branch, no commit, no push.");
+        history.push({ iteration, outcome: "dry-run", confidence: response.confidence, files: touched, inputTokens, outputTokens });
+        break;
+      }
+
       // Create branch + apply
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");
@@ -327,7 +356,7 @@ export async function watchCommand(options = {}) {
       // Wait for new CI run
       const currentRun = await getLatestRun();
       const prevId = currentRun ? currentRun.id : null;
-      const newConclusion = await waitForNewRunToComplete(prevId);
+      const newConclusion = await waitForNewRunToComplete(prevId, cfg);
 
       if (newConclusion === "success") {
         success("CI is now passing after the fix!");
@@ -342,16 +371,27 @@ export async function watchCommand(options = {}) {
       }
     }
 
-    if (iteration >= MAX_ITERATIONS) {
+    const lastEntry = history[history.length - 1];
+    if (iteration >= MAX_ITERATIONS && lastEntry && lastEntry.outcome === "fix-pushed") {
       warn(`Reached max iterations (${MAX_ITERATIONS}). Stopping watch loop.`);
     }
 
-    // Final scoreboard
-    await printWatchScoreboard(startTime, history, totalInputTokens, totalOutputTokens);
+    // Final scoreboard (and the pull request, when CI was fixed)
+    const result = await printWatchScoreboard(startTime, history, totalInputTokens, totalOutputTokens, { ...options, maxIterations: MAX_ITERATIONS });
 
+    process.exitCode = result.exitCode;
+    emitJson({
+      ok: true,
+      command: "watch",
+      fixed: result.fixed,
+      outcome: result.outcome,
+      iterations: result.iterations,
+      pullRequest: result.prUrl,
+      tokens: { inputEstimate: totalInputTokens, outputEstimate: totalOutputTokens },
+      history,
+    });
   } catch (err) {
-    console.error(chalk.red(`\n✖ Watch failed: ${err.message}`));
-    process.exit(1);
+    fail("Watch", err.message);
   }
 }
 
@@ -359,10 +399,16 @@ export async function watchCommand(options = {}) {
  * Print the final scoreboard with token usage.
  * If CI is fixed, create a PR against the repository's default branch and show the link.
  */
-async function printWatchScoreboard(startTime, history, totalInputTokens, totalOutputTokens) {
+async function printWatchScoreboard(startTime, history, totalInputTokens, totalOutputTokens, options = {}) {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   const lastOutcome = history.length > 0 ? history[history.length - 1].outcome : "unknown";
-  const fixed = lastOutcome === "success";
+  // "Fixed" means a fix of ours was pushed and CI then passed. CI that was
+  // already green when we started is reported separately, with no PR.
+  const fixPushed = history.some((h) => h.outcome === "fix-pushed");
+  const fixed = lastOutcome === "success" && fixPushed;
+  const alreadyPassing = lastOutcome === "success" && !fixPushed;
+  const dryRun = lastOutcome === "dry-run";
+  let prUrl = null;
 
   console.log("");
   console.log(chalk.bold("─── Scoreboard ───\n"));
@@ -400,18 +446,27 @@ async function printWatchScoreboard(startTime, history, totalInputTokens, totalO
   console.log(`    Total:  ~${totalTokens.toLocaleString()} tokens`);
   console.log(`    ${chalk.green(`Savings: ~${savings}% vs 3-call mode`)}`);
 
-  if (fixed) {
+  if (alreadyPassing) {
+    console.log(chalk.bold.green("\n  CI is already passing: nothing to fix.\n"));
+  } else if (dryRun) {
+    console.log(chalk.bold.green("\n  Dry run complete: the proposed fix applies cleanly. Nothing was changed.\n"));
+  } else if (fixed) {
     console.log(chalk.bold.green(`\n  CI before: ✖ FAILED → after fix: ✓ PASSING`));
     console.log(chalk.bold.green("\n🎉 CI is fixed!\n"));
 
-    // Create a PR against the repository's default branch
-    let baseBranch = pickBaseBranch(null);
-    try {
-      baseBranch = pickBaseBranch((await getRepoInfo()).defaultBranch);
-    } catch {
-      // keep the fallback if the default branch cannot be determined
+    // Create a PR against --base, or else the repository's default branch
+    let baseBranch = pickBaseBranch(options.base);
+    if (!options.base) {
+      try {
+        baseBranch = pickBaseBranch((await getRepoInfo()).defaultBranch);
+      } catch {
+        // keep the fallback if the default branch cannot be determined
+      }
     }
-    try {
+    if (options.pr === false) {
+      const fixBranch = (await execa("git", ["branch", "--show-current"]).catch(() => ({ stdout: "" }))).stdout.trim();
+      dim(`Pull request skipped (--no-pr). Fix branch: ${fixBranch || "(unknown)"}`);
+    } else try {
       const branch = (await execa("git", ["branch", "--show-current"])).stdout.trim();
       const prTitle = patch
         ? `CI Doctor: ${patch.description}`
@@ -432,7 +487,7 @@ async function printWatchScoreboard(startTime, history, totalInputTokens, totalO
       ].filter(Boolean).join("\n");
 
       dim(`Creating pull request against ${baseBranch}…`);
-      const { stdout: prUrl } = await execa("gh", [
+      const { stdout: createdUrl } = await execa("gh", [
         "pr", "create",
         "--base", baseBranch,
         "--head", branch,
@@ -440,7 +495,8 @@ async function printWatchScoreboard(startTime, history, totalInputTokens, totalO
         "--body", prBody,
       ]);
 
-      console.log(chalk.bold.green(`\n  🔗 Pull Request: ${prUrl.trim()}`));
+      prUrl = createdUrl.trim();
+      console.log(chalk.bold.green(`\n  🔗 Pull Request: ${prUrl}`));
     } catch (prErr) {
       warn(`Could not create PR: ${prErr.message}`);
       dim(`Create it manually: gh pr create --base ${baseBranch}`);
@@ -451,8 +507,17 @@ async function printWatchScoreboard(startTime, history, totalInputTokens, totalO
       : lastOutcome === "timeout" ? "timed out"
       : lastOutcome === "push-failed" ? "push failed"
       : lastOutcome === "apply-failed" ? "patch apply failed"
-      : "max iterations reached";
+      : `max iterations reached (${options.maxIterations ?? WATCH_DEFAULTS.maxIterations})`;
     console.log(chalk.yellow(`\n  CI before: ✖ FAILED → after fix: ⏳ ${reason.toUpperCase()}`));
     console.log(chalk.dim("\n  Review the latest patch manually: .copilot-ci-doctor/cache/latest-patch.json\n"));
   }
+
+  const succeeded = fixed || alreadyPassing || dryRun;
+  return {
+    fixed,
+    outcome: fixed ? "fixed" : alreadyPassing ? "already-passing" : lastOutcome === "fix-pushed" ? "max-iterations" : lastOutcome,
+    iterations,
+    prUrl,
+    exitCode: succeeded ? EXIT.OK : EXIT.NOT_FIXED,
+  };
 }

@@ -1,7 +1,7 @@
 /**
  * analyze.js — `copilot-ci-doctor analyze`
  *
- * 1. Build evidence bundle from the latest failed GitHub Actions run
+ * 1. Build evidence bundle from a failed GitHub Actions run (latest, or --run-id / --branch / --repo)
  * 2. Cache the evidence bundle
  * 3. Call Copilot CLI with the hypotheses prompt
  * 4. Display ranked root-cause hypotheses + evidence summary
@@ -13,13 +13,25 @@ import { buildEvidenceBundle, cacheBundle } from "../evidence/bundle.js";
 import { askCopilot } from "../copilot/index.js";
 import { writeCache } from "../utils/paths.js";
 import { header, confidenceColor, printEvidenceSummary, fail } from "../utils/print.js";
+import { emitJson } from "../utils/output.js";
 
-export async function analyzeCommand() {
+/**
+ * @param {object} [options]
+ * @param {string} [options.repo]   OWNER/NAME to inspect instead of the current repository.
+ * @param {string} [options.runId]  Diagnose this run instead of the latest failure.
+ * @param {string} [options.branch] Latest failure on this branch.
+ * @param {boolean} [options.json]  Print one JSON document on stdout.
+ */
+export async function analyzeCommand(options = {}) {
   try {
     header("🔍", "copilot-ci-doctor analyze");
 
     // Step 1 — Build evidence bundle
-    const bundle = await buildEvidenceBundle();
+    const bundle = await buildEvidenceBundle({
+      repo: options.repo,
+      runId: options.runId,
+      branch: options.branch,
+    });
     cacheBundle(bundle);
 
     // Step 2 — Show evidence summary
@@ -49,6 +61,14 @@ export async function analyzeCommand() {
     console.log(
       chalk.dim("Tip: Run `copilot-ci-doctor explain` for a plain-English breakdown.")
     );
+
+    const runEvidence = bundle.evidence.find((e) => e.type === "failed_run");
+    emitJson({
+      ok: true,
+      command: "analyze",
+      run: runEvidence ? runEvidence.data : null,
+      hypotheses: response.hypotheses,
+    });
   } catch (err) {
     fail("Analyze", err.message);
   }

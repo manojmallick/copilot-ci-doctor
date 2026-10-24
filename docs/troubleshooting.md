@@ -33,7 +33,7 @@ The patch from the model did not apply cleanly to your working tree, often becau
 
 ## "Confidence too low" or "Risk level is HIGH"
 
-This is a safety gate, not an error. The proposal is saved in `.copilot-ci-doctor/cache/latest-patch.json` for you to review manually.
+This is a safety gate, not an error (exit code 2). The threshold is 60% for `fix` and 80% for `watch`; change it with `--min-confidence`. The proposal is saved in `.copilot-ci-doctor/cache/latest-patch.json` for you to review manually.
 
 ## The reply could not be parsed
 
@@ -47,9 +47,13 @@ Typical reasons: confidence below 80%, the fix could not be applied or pushed, o
 
 The model's reply was not a valid unified diff (no `---`/`+++` file headers), so nothing was applied. The proposal is in `.copilot-ci-doctor/cache/proposed.patch`. Run the command again.
 
-## The demo created a public repository
+## The demo created a repository
 
-`demo` creates `ci-doctor-demo-<timestamp>` as a public repository when it cannot push elsewhere. Remove it with `gh repo delete <name>`.
+When `demo` cannot push elsewhere and you agree (or pass `--yes`), it creates `ci-doctor-demo-<timestamp>`: private by default, public only with `--public`. Remove it with `gh repo delete <name>`. If you answered no, or there was no terminal and no `--yes`, nothing was created.
+
+## `fix` did nothing and exited with 2
+
+Exit code 2 means the command ran but did not fix. Read the last lines of the output or, with `--json`, the `reason` field: `low-confidence` (the patch is below `--min-confidence`; review it by hand, or lower the threshold only if you accept the risk), `declined` (no `--yes` and no terminal, or you answered no), or `does-not-apply` (see "git apply --check failed" above).
 
 ## Still stuck?
 

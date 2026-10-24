@@ -9,12 +9,15 @@ import { execa } from "execa";
 /**
  * Get repository metadata via `gh repo view`.
  *
+ * @param {object} [opts]
+ * @param {string} [opts.repo] OWNER/NAME; defaults to the current repository.
  * @returns {Promise<object>} { nameWithOwner, defaultBranch, url }
  */
-export async function getRepoInfo() {
+export async function getRepoInfo({ repo } = {}) {
   try {
     const { stdout } = await execa("gh", [
       "repo", "view",
+      ...(repo ? [repo] : []),
       "--json", "nameWithOwner,defaultBranchRef,url",
     ]);
     const data = JSON.parse(stdout);
@@ -25,7 +28,9 @@ export async function getRepoInfo() {
     };
   } catch {
     throw new Error(
-      "Could not retrieve repo info. Make sure you are inside a GitHub repository and `gh` is authenticated."
+      repo
+        ? `Could not retrieve repo info for ${repo}. Check the name and that \`gh\` is authenticated with access to it.`
+        : "Could not retrieve repo info. Make sure you are inside a GitHub repository and `gh` is authenticated."
     );
   }
 }

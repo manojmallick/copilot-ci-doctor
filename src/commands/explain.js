@@ -11,8 +11,13 @@ import { loadCachedBundle } from "../evidence/bundle.js";
 import { askCopilot } from "../copilot/index.js";
 import { writeCache } from "../utils/paths.js";
 import { header, confidenceColor, fail } from "../utils/print.js";
+import { emitJson } from "../utils/output.js";
 
-export async function explainCommand() {
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.json] Print one JSON document on stdout.
+ */
+export async function explainCommand(options = {}) {
   try {
     header("💡", "copilot-ci-doctor explain");
 
@@ -23,6 +28,7 @@ export async function explainCommand() {
         chalk.yellow("  No cached evidence bundle found.\n") +
         chalk.dim("  Run `copilot-ci-doctor analyze` first to collect evidence.")
       );
+      emitJson({ ok: false, command: "explain", error: "No cached evidence bundle found. Run analyze first." });
       process.exit(1);
     }
     console.log(chalk.dim("  Using cached evidence bundle.\n"));
@@ -65,8 +71,10 @@ export async function explainCommand() {
     );
 
     console.log(
-      chalk.dim("\nTip: Run `copilot-ci-doctor fix --safe` to generate a patch.")
+      chalk.dim("\nTip: Run `copilot-ci-doctor fix` to generate a patch.")
     );
+
+    emitJson({ ok: true, command: "explain", explanation: response });
   } catch (err) {
     fail("Explain", err.message);
   }

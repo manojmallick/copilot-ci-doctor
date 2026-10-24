@@ -1,6 +1,6 @@
 {
   "name": "copilot-ci-doctor",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "CLI tool that diagnoses GitHub Actions CI failures using GitHub Copilot CLI as the reasoning engine",
   "keywords": [
     "github-actions",

@@ -128,6 +128,8 @@ Removes `.copilot-ci-doctor/demo-run/` and, after asking, **permanently deletes*
 
 ## Exit codes
 
+> Upgrading from 1.x: these codes are new in 2.0.0. Before, "confidence too low", "declined" and "does not apply" exited `0`. See the [CHANGELOG](https://github.com/manojmallick/copilot-ci-doctor/blob/main/CHANGELOG.md#200--2026-10-24).
+
 | Code | Meaning |
 |---|---|
 | `0` | Done: analysis printed, patch applied (or, with `--dry-run`, checked), or CI fixed |

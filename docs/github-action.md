@@ -27,7 +27,7 @@ jobs:
     if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     steps:
-      - uses: manojmallick/copilot-ci-doctor@main   # better: pin a release tag, e.g. @v1.2.0, once that tag is published
+      - uses: manojmallick/copilot-ci-doctor@main   # better: pin a release tag, e.g. @v2.0.0, once that tag is published
 ```
 
 ## Inputs

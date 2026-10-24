@@ -9,6 +9,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Redaction rules grew from 12 to 21: added OpenAI/Anthropic project keys, Slack, Stripe, Google API, GitLab, Azure, AWS secret keys, JSON Web Tokens, Basic auth and passwords inside URLs. The OpenAI rule now matches any `sk-…` key of 20 or more characters, not only the old 48-character form.
 
 ### Added
+- `action.yml`: an experimental composite GitHub Action that runs `analyze --json` on a failed workflow run and posts (or updates) a pull request comment. See `docs/github-action.md`.
+- `docs/examples.md`: three worked examples (missing lockfile, failing test, lint error) and a `docs/github-action.md` guide.
 - Options: `analyze --repo/--run-id/--branch`, `explain`/`retry` with the same selectors, `fix --dry-run/--min-confidence/--json`, `watch --max-iterations/--min-confidence/--poll-interval/--poll-timeout/--base/--no-pr/--dry-run/--json`, and `demo --yes/--public`. `--json` prints a single JSON document on stdout with progress on stderr; `--help` lists the exit codes.
 - End-to-end tests that run the real CLI against a temporary git repository with a fake `gh`: option validation, `--json`, `--dry-run`, `--min-confidence`, patches that do not apply, and the `demo` confirmation.
 - Automated tests (`npm test`, Node's built-in runner): redaction, patch normalisation and file detection, JSON extraction, response contract, helpers and the CLI, plus integration tests that run `git apply` and staging against a real temporary repository.
@@ -26,6 +28,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `watch` now opens its pull request against the repository's default branch instead of always using `main`.
 
 ### Documentation
+- Corrected the README and hackathon notes, which still said `demo` creates a public repository (it asks first and is private by default since the options update).
 - Restructured the README for everyday use and moved the details to `docs/`: commands, how it works, safety and privacy, troubleshooting, releasing.
 - Corrected the prerequisites: the `gh-copilot` extension is retired and `gh copilot` now runs the standalone GitHub Copilot CLI.
 - Documented what is sent to Copilot, the 12 redaction patterns and their limits, exit behaviour, cache files, and known limitations (`git add -A`, public demo repository).

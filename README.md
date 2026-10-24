@@ -28,7 +28,7 @@ copilot-ci-doctor explain      # plain-English explanation
 copilot-ci-doctor fix          # preview the patch, confirm, apply on a ci-fix/* branch
 ```
 
-> **`demo` creates a public repository on your GitHub account** (named `ci-doctor-demo-<timestamp>`) if it cannot push the demo project elsewhere. Use it with an account where that is fine, and delete the repository afterwards.
+> **`demo` may create a repository on your GitHub account** (named `ci-doctor-demo-<timestamp>`, private unless you pass `--public`) if it cannot push the demo project elsewhere. It asks first; `--yes` skips the question. Delete the repository afterwards.
 
 <details>
 <summary>Example output of a <code>watch</code> run</summary>
@@ -66,6 +66,10 @@ copilot-ci-doctor fix          # preview the patch, confirm, apply on a ci-fix/*
 Useful options: `--repo`, `--run-id` and `--branch` pick the run to inspect; `--json` prints machine-readable output; exit code `0` means done, `1` error, `2` ran but did not fix.
 
 Details, flags and examples: [docs/commands.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/commands.md).
+
+## Use it in CI
+
+The repository ships a composite GitHub Action that diagnoses a failed run and comments on the pull request. It is experimental; read [docs/github-action.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/github-action.md) for the permissions and the Copilot token it needs.
 
 ## How it works
 
@@ -117,6 +121,8 @@ Common problems (Copilot CLI not found, `gh` not authenticated, patches that fai
 |---|---|
 | [docs/commands.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/commands.md) | Every command, flags, examples, exit behaviour, cache files |
 | [docs/how-it-works.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/how-it-works.md) | Evidence bundle, Copilot usage, JSON contract, patch handling, token savings, code layout |
+| [docs/github-action.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/github-action.md) | Run it in CI: post a diagnosis as a pull request comment |
+| [docs/examples.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/examples.md) | Worked examples: missing lockfile, failing test, lint error |
 | [docs/safety-and-privacy.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/safety-and-privacy.md) | Guarantees, what is sent to Copilot, redaction patterns |
 | [docs/troubleshooting.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/troubleshooting.md) | Fixes for common problems |
 | [docs/HACKATHON.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/HACKATHON.md) | Notes written for the hackathon judges |

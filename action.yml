@@ -1,0 +1,76 @@
+name: copilot-ci-doctor
+description: Diagnose a failed GitHub Actions run with GitHub Copilot CLI and post the likely cause as a pull request comment.
+author: Manoj Mallick
+branding:
+  icon: activity
+  color: red
+
+inputs:
+  run-id:
+    description: ID of the failed workflow run to diagnose.
+    default: ${{ github.event.workflow_run.id }}
+  github-token:
+    description: Token used for gh and Copilot CLI. See docs/github-action.md for the permissions it needs.
+    default: ${{ github.token }}
+  version:
+    description: npm version or tag of copilot-ci-doctor to run.
+    default: latest
+  comment:
+    description: Post the diagnosis as a pull request comment ("true" or "false").
+    default: "true"
+  pr-number:
+    description: Pull request to comment on. Defaults to the first pull request of the failed run.
+    default: ""
+
+outputs:
+  result-file:
+    description: Path of the JSON file written by `analyze --json`.
+    value: ${{ steps.analyze.outputs.result-file }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Diagnose the failed run
+      id: analyze
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        COPILOT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        RUN_ID: ${{ inputs.run-id }}
+        VERSION: ${{ inputs.version }}
+        REPO: ${{ github.repository }}
+      run: |
+        out="$RUNNER_TEMP/ci-doctor-result.json"
+        echo "result-file=$out" >> "$GITHUB_OUTPUT"
+        # Exit code 1 (error) is reported in the comment, so do not fail the step here.
+        npx --yes "copilot-ci-doctor@${VERSION}" analyze --repo "$REPO" --run-id "$RUN_ID" --json > "$out" || true
+        cat "$out"
+
+    - name: Post the pull request comment
+      if: inputs.comment == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR_INPUT: ${{ inputs.pr-number }}
+        PR_FROM_EVENT: ${{ github.event.workflow_run.pull_requests[0].number }}
+        RESULT: ${{ steps.analyze.outputs.result-file }}
+      run: |
+        pr="${PR_INPUT:-$PR_FROM_EVENT}"
+        if [ -z "$pr" ]; then
+          echo "No pull request to comment on; skipping."
+          exit 0
+        fi
+        body="$RUNNER_TEMP/ci-doctor-comment.md"
+        node "${{ github.action_path }}/action/render-comment.js" "$RESULT" > "$body"
+        # Update our earlier comment if there is one, so re-runs do not pile up.
+        existing=$(gh api "repos/$REPO/issues/$pr/comments" --paginate --jq '[.[] | select(.body | contains("<!-- copilot-ci-doctor -->")) | .id] | last // empty')
+        if [ -n "$existing" ]; then
+          gh api -X PATCH "repos/$REPO/issues/comments/$existing" -F body=@"$body" > /dev/null
+        else
+          gh api "repos/$REPO/issues/$pr/comments" -F body=@"$body" > /dev/null
+        fi

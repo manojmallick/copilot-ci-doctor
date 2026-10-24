@@ -2,6 +2,21 @@
   "name": "copilot-ci-doctor",
   "version": "1.1.6",
   "description": "CLI tool that diagnoses GitHub Actions CI failures using GitHub Copilot CLI as the reasoning engine",
+  "keywords": [
+    "github-actions",
+    "ci",
+    "ci-cd",
+    "github-copilot",
+    "copilot-cli",
+    "devops",
+    "debugging",
+    "cli",
+    "automation"
+  ],
+  "homepage": "https://github.com/manojmallick/copilot-ci-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/manojmallick/copilot-ci-doctor/issues"
+  },
   "type": "module",
   "bin": {
     "copilot-ci-doctor": "./src/cli.js"

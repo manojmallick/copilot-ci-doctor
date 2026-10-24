@@ -7,6 +7,7 @@
  * This file should be kept thin — all logic lives in the command modules.
  */
 
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import chalk from "chalk";
 import { analyzeCommand } from "./commands/analyze.js";
@@ -16,6 +17,9 @@ import { retryCommand } from "./commands/retry.js";
 import { watchCommand } from "./commands/watch.js";
 import { demoCommand } from "./commands/demo.js";
 
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
+
 const program = new Command();
 
 program
@@ -23,7 +27,7 @@ program
   .description(
     "Diagnose GitHub Actions CI failures using GitHub Copilot CLI as the reasoning engine"
   )
-  .version("1.0.0");
+  .version(version);
 
 // ── analyze ──────────────────────────────────────────────────────────────────
 program

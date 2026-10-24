@@ -108,7 +108,9 @@ export function createSandbox(scenarioOverrides = {}) {
     fs.writeFileSync(path.join(fakeDir, "scenario.json"), JSON.stringify(defaultScenario(overrides)));
   writeScenario(scenarioOverrides);
 
-  const env = { ...process.env, FAKE_GH_DIR: fakeDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, NO_COLOR: "1", FORCE_COLOR: "0" };
+  const env = { ...process.env, FAKE_GH_DIR: fakeDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, NO_COLOR: "1", FORCE_COLOR: "0",
+    // CI runners have no git identity; commits made by the CLI (and by demo) still need one
+    GIT_AUTHOR_NAME: "Test", GIT_AUTHOR_EMAIL: "test@example.com", GIT_COMMITTER_NAME: "Test", GIT_COMMITTER_EMAIL: "test@example.com" };
 
   return {
     repo,

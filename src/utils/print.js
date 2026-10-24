@@ -5,6 +5,7 @@
  */
 
 import chalk from "chalk";
+import { emitJson } from "./output.js";
 
 /**
  * Print a section header.
@@ -55,6 +56,7 @@ export function warn(msg) {
  */
 export function fail(label, message) {
   console.error(chalk.red(`\n✖ ${label} failed: ${message}`));
+  emitJson({ ok: false, command: label.toLowerCase(), error: message });
   process.exit(1);
 }
 

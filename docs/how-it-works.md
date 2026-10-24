@@ -55,7 +55,7 @@ Language models often write wrong line counts in diff hunk headers. Before apply
 
 ## 5. Watch loop
 
-`watch` repeats: evidence, one combined Copilot call, apply, commit, push, wait for the new CI run (10 s polling, 180 s timeout). It stops when CI passes (a PR is opened against the default branch), when confidence is below 80%, after 5 iterations, or when applying or pushing fails.
+`watch` repeats: evidence, one combined Copilot call, apply, commit, push, wait for the new CI run (10 s polling, 180 s timeout by default). It stops when CI passes (a PR is opened against the default branch), when confidence is below the threshold, after the maximum number of iterations, or when applying or pushing fails. The defaults (80%, 5 iterations, 10 s, 180 s) can be changed with `--min-confidence`, `--max-iterations`, `--poll-interval` and `--poll-timeout`.
 
 ## Token savings
 

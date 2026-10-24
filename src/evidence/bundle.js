@@ -10,11 +10,30 @@ import chalk from "chalk";
 import fs from "node:fs";
 import path from "node:path";
 import { getRepoInfo } from "./githubRepo.js";
-import { getLatestFailedRun, getFailedJobs, getRunLogs } from "./githubActions.js";
+import { execa } from "execa";
+import { getLatestFailedRun, getRunById, getFailedJobs, getRunLogs } from "./githubActions.js";
 import { redact } from "./redact.js";
 import { writeCache, readCache } from "../utils/paths.js";
 
 const EVIDENCE_CACHE_FILE = "latest-evidence.json";
+
+/**
+ * Get the workflow YAML for a run. For another repository (`repo`) it is read
+ * with `gh workflow view`; otherwise from the local .github/workflows folder.
+ *
+ * @param {string} workflowName
+ * @param {string} [repo] OWNER/NAME
+ * @returns {Promise<string>}
+ */
+async function getWorkflowYaml(workflowName, repo) {
+  if (!repo) return getWorkflowFile(workflowName);
+  try {
+    const { stdout } = await execa("gh", ["workflow", "view", workflowName, "--yaml", "-R", repo]);
+    return redact(stdout);
+  } catch {
+    return "[Could not retrieve the workflow file from the repository]";
+  }
+}
 
 /**
  * Read the workflow YAML file that triggered the run.
@@ -50,33 +69,43 @@ function getWorkflowFile(workflowName) {
 }
 
 /**
- * Build a complete Evidence Bundle for the latest failed CI run.
+ * Build a complete Evidence Bundle for a failed CI run.
  *
+ * @param {object} [opts]
+ * @param {string} [opts.repo]   OWNER/NAME to inspect instead of the current repository.
+ * @param {string} [opts.runId]  Diagnose this run instead of the latest failure.
+ * @param {string} [opts.branch] Look for the latest failure on this branch.
  * @returns {Promise<object>} The evidence bundle.
  */
-export async function buildEvidenceBundle() {
+export async function buildEvidenceBundle({ repo, runId, branch } = {}) {
   console.log(chalk.dim("📦 Building evidence bundle…"));
 
   // 1 — Repo info
-  const repoInfo = await getRepoInfo();
+  const repoInfo = await getRepoInfo({ repo });
 
-  // 2 — Latest failed run
-  const failedRun = await getLatestFailedRun();
+  // 2 — The failed run: a specific one, or the latest failure
+  const failedRun = runId
+    ? await getRunById(runId, { repo })
+    : await getLatestFailedRun({ repo, branch });
   if (!failedRun) {
-    throw new Error("No failed GitHub Actions runs found in this repository.");
+    throw new Error(
+      branch
+        ? `No failed GitHub Actions runs found on branch "${branch}".`
+        : "No failed GitHub Actions runs found in this repository."
+    );
   }
   console.log(
     chalk.yellow(`  Found failed run: ${failedRun.workflowName} (#${failedRun.databaseId})`)
   );
 
   // 3 — Failed jobs
-  const failedJobs = await getFailedJobs(failedRun.databaseId);
+  const failedJobs = await getFailedJobs(failedRun.databaseId, { repo });
 
   // 4 — Logs
-  const logExcerpt = await getRunLogs(failedRun.databaseId);
+  const logExcerpt = await getRunLogs(failedRun.databaseId, 200, { repo });
 
   // 5 — Workflow file
-  const workflowYaml = getWorkflowFile(failedRun.workflowName);
+  const workflowYaml = await getWorkflowYaml(failedRun.workflowName, repo);
 
   // Assemble bundle with evidence IDs
   const bundle = {

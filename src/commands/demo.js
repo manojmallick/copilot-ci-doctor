@@ -17,13 +17,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { watchCommand } from "./watch.js";
 import { header, success, warn, dim } from "../utils/print.js";
+import { confirm } from "../utils/prompt.js";
 
 const DEMO_DIR_NAME = ".copilot-ci-doctor/demo-run";
-const DEMO_REPO_URL = "https://github.com/manojmallick/ci-doctor-demo";
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 120_000;
 
-export async function demoCommand() {
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.yes]    Create the GitHub repository without asking.
+ * @param {boolean} [options.public] Create a public repository (default: private).
+ */
+export async function demoCommand(options = {}) {
   try {
     header("🎬", "copilot-ci-doctor demo");
     dim("End-to-end: create broken CI → watch → auto-fix → verify passing\n");
@@ -36,8 +41,7 @@ export async function demoCommand() {
       fs.rmSync(demoDir, { recursive: true, force: true });
     }
     {
-      dim(`Using demo repo: ${DEMO_REPO_URL}`);
-      dim("Creating demo repository with intentionally broken CI…\n");
+      dim("Creating a local demo project with intentionally broken CI…\n");
       await createDemoRepo(demoDir);
     }
 
@@ -52,10 +56,20 @@ export async function demoCommand() {
         await execa("git", ["push", "-u", "origin", "main"]);
         success("Pushed — CI workflow triggered.");
       } catch {
-        warn("Push failed (repo may not have a remote). Trying gh repo create…");
+        warn("The demo project has no remote yet; it needs a GitHub repository to run CI.");
         const repoName = `ci-doctor-demo-${Date.now()}`;
-        await execa("gh", ["repo", "create", repoName, "--public", "--source=.", "--push"]);
-        success(`Created GitHub repo: ${repoName}`);
+        const visibility = options.public ? "public" : "private";
+        const allowed = options.yes || await confirm(
+          chalk.yellow(`Create a ${visibility} GitHub repository named ${repoName} on your account?`)
+        );
+        if (!allowed) {
+          throw new Error(
+            "Demo cancelled: no repository was created. Re-run with --yes to allow it (add --public for a public repository)."
+          );
+        }
+        await execa("gh", ["repo", "create", repoName, `--${visibility}`, "--source=.", "--push"]);
+        success(`Created ${visibility} GitHub repo: ${repoName}`);
+        dim(`Delete it when you are done: gh repo delete ${repoName}`);
       }
 
       // Poll for failure

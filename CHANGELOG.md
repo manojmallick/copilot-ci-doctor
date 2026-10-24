@@ -9,10 +9,16 @@ All notable changes to this project are documented here. The format follows [Kee
 - Redaction rules grew from 12 to 21: added OpenAI/Anthropic project keys, Slack, Stripe, Google API, GitLab, Azure, AWS secret keys, JSON Web Tokens, Basic auth and passwords inside URLs. The OpenAI rule now matches any `sk-…` key of 20 or more characters, not only the old 48-character form.
 
 ### Added
+- Options: `analyze --repo/--run-id/--branch`, `explain`/`retry` with the same selectors, `fix --dry-run/--min-confidence/--json`, `watch --max-iterations/--min-confidence/--poll-interval/--poll-timeout/--base/--no-pr/--dry-run/--json`, and `demo --yes/--public`. `--json` prints a single JSON document on stdout with progress on stderr; `--help` lists the exit codes.
+- End-to-end tests that run the real CLI against a temporary git repository with a fake `gh`: option validation, `--json`, `--dry-run`, `--min-confidence`, patches that do not apply, and the `demo` confirmation.
 - Automated tests (`npm test`, Node's built-in runner): redaction, patch normalisation and file detection, JSON extraction, response contract, helpers and the CLI, plus integration tests that run `git apply` and staging against a real temporary repository.
 - GitHub Actions workflow `ci.yml`: syntax check, tests, CLI smoke test and package check on Node 18, 20 and 22 for every push to `main` and every pull request. The npm publish workflow now runs the tests too.
 
 ### Changed
+- **Behaviour change: exit codes.** Commands now exit `0` when done, `1` on error and `2` when they ran correctly but did not fix anything (confidence too low, patch declined or not applicable, iteration or time limit reached). These cases used to exit `0`. Scripts that treated `0` as "gave up or fixed" should check for `2` as well.
+- **Behaviour change: `demo`** now asks before creating a GitHub repository, and creates a **private** one (it used to create a public repository without asking). Use `--yes` to skip the question and `--public` for a public repository. Without a terminal and without `--yes` nothing is created.
+- `fix` without `--yes` and without a terminal no longer applies anything.
+- Invalid option values are rejected up front with a clear message.
 - The duplicated patch-normalising code in `fix.js` and `watch.js` now lives in one module, `src/utils/patch.js`.
 
 ### Fixed

@@ -6,9 +6,18 @@ All commands run **inside a git clone** of a GitHub repository, using your signe
 
 ```bash
 copilot-ci-doctor analyze
+copilot-ci-doctor analyze --repo octocat/hello-world --branch main
+copilot-ci-doctor analyze --run-id 1234567890 --json
 ```
 
-Finds the latest failed GitHub Actions run, collects the evidence bundle (E1 to E5, see [how it works](how-it-works.md)), asks Copilot for ranked root-cause hypotheses with confidence scores, and caches the results.
+| Option | Meaning |
+|---|---|
+| `--repo <owner/name>` | Inspect this repository instead of the one you are in |
+| `--run-id <id>` | Use this failed run instead of the latest failure |
+| `--branch <name>` | Use the latest failed run on this branch |
+| `--json` | Print one JSON document on stdout (see [Scripting](#scripting-and---json)) |
+
+Finds a failed GitHub Actions run (the latest by default), collects the evidence bundle (E1 to E5, see [how it works](how-it-works.md)), asks Copilot for ranked root-cause hypotheses with confidence scores, and caches the results.
 
 Writes: `latest-evidence.json`, `latest-hypotheses.json`.
 
@@ -16,6 +25,7 @@ Writes: `latest-evidence.json`, `latest-hypotheses.json`.
 
 ```bash
 copilot-ci-doctor explain
+copilot-ci-doctor explain --json
 ```
 
 Explains the failure in plain English, including why it might pass locally and what probably changed. It reuses the evidence cached by `analyze`; if there is none it tells you to run `analyze` first and exits with status 1.
@@ -27,8 +37,18 @@ Writes: `latest-explain.json`.
 ```bash
 copilot-ci-doctor fix          # preview, ask, apply
 copilot-ci-doctor fix --yes    # skip the confirmation prompt
+copilot-ci-doctor fix --dry-run                 # show the diff, check it applies, change nothing
+copilot-ci-doctor fix --min-confidence 85       # refuse patches below 85%
 copilot-ci-doctor fix --auto   # full loop, identical to `watch`
 ```
+
+| Option | Meaning |
+|---|---|
+| `--yes` | Apply without asking. Without it, and without a terminal (CI, a pipe), nothing is applied |
+| `--dry-run` | Show the diff and run `git apply --check`; no branch, commit or push |
+| `--min-confidence <percent>` | Refuse patches below this confidence (default 60; `watch` default 80) |
+| `--json` | Print one JSON document on stdout |
+| `--auto` | Run the full loop; accepts the `watch` options below |
 
 Asks Copilot for a minimal patch and then:
 
@@ -47,7 +67,20 @@ Writes: `latest-patch.json`, `proposed.patch`, and on failure `git-apply-error.t
 
 ```bash
 copilot-ci-doctor watch
+copilot-ci-doctor watch --max-iterations 3 --min-confidence 90 --no-pr
+copilot-ci-doctor watch --dry-run
 ```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--max-iterations <n>` | 5 | Give up after this many fix attempts |
+| `--min-confidence <percent>` | 80 | Do not apply a fix below this confidence |
+| `--poll-interval <seconds>` | 10 | Seconds between CI status checks |
+| `--poll-timeout <seconds>` | 180 | Seconds to wait for a CI run to start or finish |
+| `--base <branch>` | repository default branch | Open the pull request against this branch |
+| `--no-pr` | | Do not open a pull request when CI is fixed |
+| `--dry-run` | | Show the diff and check that it applies; change nothing |
+| `--json` | | Print one JSON document on stdout |
 
 Monitors the pipeline and fixes failures in a loop, using one combined Copilot call per iteration:
 
@@ -61,8 +94,8 @@ Monitors the pipeline and fixes failures in a loop, using one combined Copilot c
 It stops when:
 
 - CI passes, in which case it opens a pull request against the repository's **default branch** with the fix, confidence, root cause, explanation, iteration count and token estimate;
-- the fix confidence is below 80%;
-- 5 iterations have run;
+- the fix confidence is below `--min-confidence` (80% by default);
+- `--max-iterations` (5 by default) have run;
 - applying the patch or pushing fails, or polling times out.
 
 A scoreboard with estimated token usage is printed at the end.
@@ -71,29 +104,44 @@ A scoreboard with estimated token usage is printed at the end.
 
 ```bash
 copilot-ci-doctor retry
+copilot-ci-doctor retry --run-id 1234567890 --repo octocat/hello-world
 ```
 
-Re-runs the most recent failed workflow run (`gh run rerun --failed`).
+Re-runs a failed workflow run (`gh run rerun --failed`): the latest failure by default, or the one given by `--run-id`, `--branch` and `--repo` (same meaning as for `analyze`).
 
 ## `demo`
 
 ```bash
-copilot-ci-doctor demo
+copilot-ci-doctor demo          # asks before creating anything on GitHub
+copilot-ci-doctor demo --yes    # create a private repository without asking
+copilot-ci-doctor demo --yes --public
 ```
 
 Creates a small project with a deliberately broken workflow in `.copilot-ci-doctor/demo-run/`, pushes it to trigger CI, waits for the failure and hands over to `watch`.
 
-> **Side effect:** if the demo project cannot be pushed to an existing remote, the command runs `gh repo create ci-doctor-demo-<timestamp> --public` and pushes there. That is a **public repository on your GitHub account**. Delete it when you are done (`gh repo delete <name>`).
+> **Side effect:** if the demo project cannot be pushed to an existing remote, the command offers to run `gh repo create ci-doctor-demo-<timestamp> --private` and push there. It asks first; `--yes` answers for you, and without a terminal and without `--yes` the demo stops and creates nothing. The repository is **private** unless you pass `--public`. Delete it when you are done (`gh repo delete <name>`).
 
-## Exit behaviour
+## Exit codes
 
-| Situation | Exit status |
+| Code | Meaning |
 |---|---|
-| Normal completion | `0` |
-| Error (for example `gh` missing, no evidence cached for `explain`, `watch` or `demo` failing with an exception, fatal error in the CLI) | `1` |
-| Stopped because confidence was too low, the patch was declined or risk was HIGH | `0` |
+| `0` | Done: analysis printed, patch applied (or, with `--dry-run`, checked), or CI fixed |
+| `1` | Error: invalid option, missing tool, no failed run, no cached evidence, or a GitHub, Copilot or git failure |
+| `2` | Ran correctly but did not fix: confidence too low, risk HIGH, patch declined or not applicable, or the iteration or time limit was reached |
 
-Because the last row is `0`, scripts cannot rely on the exit status alone to know whether CI was fixed.
+Invalid option values (for example `--run-id abc` or `--min-confidence 150`) are rejected with exit `1` before any command runs.
+
+## Scripting and `--json`
+
+With `--json`, stdout holds exactly one JSON document and all progress text goes to stderr. Every document has `ok` and `command`:
+
+```bash
+copilot-ci-doctor analyze --json | jq '.hypotheses[0]'
+copilot-ci-doctor fix --dry-run --json | jq '{files, confidence, reason}'
+copilot-ci-doctor fix --yes --min-confidence 90 --json; echo "exit $?"
+```
+
+Errors look like `{"ok": false, "command": "fix", "error": "..."}`. For `fix` and `watch`, `applied` says whether anything changed and `reason` explains why not (`dry-run`, `low-confidence`, `declined`, `does-not-apply`).
 
 ## Cache files
 

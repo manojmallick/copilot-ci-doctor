@@ -80,7 +80,15 @@ Full walkthrough: [docs/how-it-works.md](https://github.com/manojmallick/copilot
 - No force-pushes.
 - **What leaves your machine:** the evidence bundle (repo name and default branch, failed run and job metadata, 200 redacted log lines, the workflow YAML) is sent to GitHub Copilot as part of the prompt. Redaction is pattern-based and best-effort; it does not catch every possible secret.
 
-Read the full list of guarantees and the redaction patterns in [docs/safety-and-privacy.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/safety-and-privacy.md).
+## npm scripts (for contributors)
+
+| Command | What it does |
+|---|---|
+| `npm start` | Run the CLI from source (`node src/cli.js`) |
+| `npm run test:bin` | Smoke test: runs `src/cli.js --help` |
+| `npm run prepublishOnly` | Runs `test:bin` automatically before `npm publish` |
+
+## 🧠 How GitHub Copilot CLI is used (core requirement)
 
 ## Requirements
 

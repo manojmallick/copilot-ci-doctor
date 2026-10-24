@@ -51,7 +51,7 @@ If parsing or validation fails, the raw reply is redacted and saved to `.copilot
 
 ## 4. Patch handling
 
-Language models often write wrong line counts in diff hunk headers. Before applying, the tool recounts the old and new lines of every hunk and rewrites the `@@` headers. It then runs `git apply --check`, applies the patch on a new `ci-fix/<timestamp>` branch and commits with a `CI Doctor:` message. See [safety and privacy](safety-and-privacy.md) for the gates and the `git add -A` caveat.
+Language models often write wrong line counts in diff hunk headers. Before applying, the tool recounts the old and new lines of every hunk and rewrites the `@@` headers. It then runs `git apply --check`, applies the patch on a new `ci-fix/<timestamp>` branch, stages only the files named in the patch, and commits with a `CI Doctor:` message. See [safety and privacy](safety-and-privacy.md) for the gates.
 
 ## 5. Watch loop
 
@@ -82,6 +82,10 @@ src/
 │   ├── githubRepo.js      Repository info via gh
 │   └── redact.js          Secret redaction
 ├── prompts/loadPrompt.js  Template loader
-└── utils/                 Paths and cache helpers; terminal output
+└── utils/
+    ├── patch.js           Hunk-header normalisation; files touched by a patch
+    ├── paths.js           Path and cache helpers
+    └── print.js           Terminal output
 prompts/                   The four prompt templates
+test/                      Unit and git integration tests (node --test)
 ```

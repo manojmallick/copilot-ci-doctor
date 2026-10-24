@@ -6,6 +6,7 @@
 - **Confirmation.** `fix` shows the diff and asks before applying, unless you pass `--yes` or `--auto`.
 - **Gates.** `fix` does not apply a patch whose confidence is below 60% or whose risk is HIGH. `watch` stops when confidence falls below 80%.
 - **New branch.** Changes are committed on a new `ci-fix/<YYYYMMDD-HHMMSS>` branch, not on your current branch's history directly.
+- **Only the patched files are committed.** After applying a patch, only the files named in the patch are staged (`git add -- <files>`). Other uncommitted or untracked files, and the `.copilot-ci-doctor/` cache folder, are never added to a fix commit. If the files a patch changes cannot be determined, nothing is applied.
 - **Pre-flight check.** `git apply --check` runs before a patch is applied; hunk headers are recounted first because language models often get them wrong.
 - **No force-push.** `watch` only runs a normal `git push -u origin <branch>`.
 - **PR for review.** When CI passes, `watch` opens a pull request against the repository's default branch. It does not merge it.
@@ -29,22 +30,16 @@ Your source files are not attached by this tool, but log lines and YAML can stil
 
 `src/evidence/redact.js` replaces matches of these patterns with `[REDACTED]`:
 
-| Pattern |
-|---|
-| GitHub personal access tokens (`ghp_…`), OAuth tokens (`gho_…`), fine-grained tokens (`github_pat_…`), app installation tokens (`ghs_…`), refresh tokens (`ghr_…`) |
-| `Bearer <token>` |
-| `token: …` or `token=…` followed by 20 or more token characters |
-| `password: …` or `password=…` followed by 8 or more characters |
-| PEM private key blocks |
-| AWS access key IDs (`AKIA…`) |
-| OpenAI-style keys of the form `sk-` plus 48 characters |
-| npm tokens (`npm_…`) |
+| Kind | Examples |
+|---|---|
+| GitHub and GitLab | personal access tokens (`ghp_…`), OAuth (`gho_…`), fine-grained (`github_pat_…`), app installation (`ghs_…`), refresh (`ghr_…`), GitLab (`glpat-…`) |
+| Cloud and API providers | AWS access key IDs (`AKIA…`, `ASIA…`) and `aws_secret_access_key` values, Azure `AccountKey=…`, Google API keys (`AIza…`), OpenAI and Anthropic keys (`sk-…`, `sk-proj-…`, `sk-ant-…`), Stripe keys (`sk_live_…`, `rk_test_…`), Slack tokens (`xox…`), npm tokens (`npm_…`) |
+| Generic | JSON Web Tokens, `Bearer <token>`, `Basic <base64>`, the password inside a URL (`scheme://user:PASSWORD@host`, host and user are kept), `token: …` / `token=…` with 20 or more characters, `password: …` / `password=…` with 8 or more characters, PEM private key blocks |
 
-That is 12 patterns. Redaction is **best effort**. It does not currently cover, for example, newer OpenAI `sk-proj-…` keys, Slack, Stripe or Google API keys, JWTs, or secrets that appear without a recognisable prefix. Do not rely on it as the only protection: keep secrets out of CI logs (use GitHub's secret masking) and review what a run prints.
+That is 21 rules. Redaction is **best effort**: it recognises credential *formats*. It cannot recognise a secret that has no recognisable prefix or label (for example a bare random password printed on its own line). Do not rely on it as the only protection: keep secrets out of CI logs (use GitHub's secret masking) and review what a run prints. The rules are covered by tests in `test/redact.test.js`.
 
 ## Known gaps to be aware of
 
-- **`git add -A`.** `fix` and `watch` commit with `git add -A`. Other uncommitted or untracked files in the repository, and the `.copilot-ci-doctor/` cache folder (which holds the redacted evidence) are staged too unless your repository ignores them. Start from a clean working tree and add `.copilot-ci-doctor/` to your `.gitignore`.
 - **Model output.** Patches are written by a language model. Treat every patch and every pull request like code from an unknown contributor: read it before merging.
 - **`demo`** creates a public repository on your account in some cases; see [commands](commands.md#demo).
 

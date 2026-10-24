@@ -29,8 +29,10 @@
   ],
   "scripts": {
     "start": "node src/cli.js",
+    "test": "node --test test/*.test.js",
     "test:bin": "node src/cli.js --help",
-    "prepublishOnly": "npm run test:bin"
+    "check": "node --check src/cli.js",
+    "prepublishOnly": "npm test"
   },
   "publishConfig": {
     "access": "public",

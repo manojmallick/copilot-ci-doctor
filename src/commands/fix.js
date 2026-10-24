@@ -22,73 +22,7 @@ import { askCopilot } from "../copilot/index.js";
 import { writeCache, writeCacheText, cachePath, ensureCacheDir } from "../utils/paths.js";
 import { header, confidenceColor, printDiff, fail } from "../utils/print.js";
 import { redact } from "../evidence/redact.js";
-
-/**
- * Normalize a unified diff by recounting hunk line counts.
- * LLMs frequently emit wrong @@ line counts, causing `git apply` to fail
- * with "corrupt patch". This function fixes the headers.
- */
-function normalizePatch(patchText) {
-  // Strip \r for consistent line endings and trim trailing whitespace/newlines
-  // so split("\n") doesn't produce a phantom empty element that fixHunkHeader
-  // would mis-count as a context line.
-  const lines = patchText.replace(/\r/g, "").trimEnd().split("\n");
-  const output = [];
-  let hunkStart = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (line.startsWith("@@")) {
-      // If we have a previous hunk, fix its header
-      if (hunkStart >= 0) {
-        fixHunkHeader(output, hunkStart);
-      }
-      hunkStart = output.length;
-      output.push(line);
-    } else {
-      output.push(line);
-    }
-  }
-
-  // Fix the last hunk
-  if (hunkStart >= 0) {
-    fixHunkHeader(output, hunkStart);
-  }
-
-  // Ensure the patch always ends with a newline (required by git apply)
-  return output.join("\n") + "\n";
-}
-
-function fixHunkHeader(lines, hunkIdx) {
-  // Parse existing header to get starting line numbers
-  const header = lines[hunkIdx];
-  const match = header.match(/^@@ -(\d+),?\d* \+(\d+),?\d* @@(.*)$/);
-  if (!match) return;
-
-  const oldStart = parseInt(match[1], 10);
-  const newStart = parseInt(match[2], 10);
-  const trailing = match[3] || "";
-
-  let oldCount = 0;
-  let newCount = 0;
-
-  for (let i = hunkIdx + 1; i < lines.length; i++) {
-    const l = lines[i];
-    if (l.startsWith("@@") || l.startsWith("diff ") || l.startsWith("--- ") || l.startsWith("+++ ")) break;
-    if (l.startsWith("-")) {
-      oldCount++;
-    } else if (l.startsWith("+")) {
-      newCount++;
-    } else {
-      // context line (or empty line within hunk)
-      oldCount++;
-      newCount++;
-    }
-  }
-
-  lines[hunkIdx] = `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@${trailing}`;
-}
+import { normalizePatch, patchFilePaths } from "../utils/patch.js";
 
 /**
  * Prompt the user for a yes/no confirmation via stdin.
@@ -186,6 +120,14 @@ export async function fixCommand(options) {
     const normalizedPatch = normalizePatch(response.patch);
     fs.writeFileSync(patchFile, normalizedPatch, "utf-8");
 
+    // Only these files will be staged after the patch is applied.
+    const touched = patchFilePaths(normalizedPatch);
+    if (touched.length === 0) {
+      console.error(chalk.red("\n  ✖ Could not determine which files the patch changes — not applying."));
+      console.log(chalk.dim("  Review it manually: .copilot-ci-doctor/cache/proposed.patch"));
+      return;
+    }
+
     // Pre-flight: git apply --check
     try {
       await execa("git", ["apply", "--check", patchFile]);
@@ -220,8 +162,9 @@ export async function fixCommand(options) {
       return;
     }
 
-    // Stage and commit
-    await execa("git", ["add", "-A"]);
+    // Stage only the files the patch touched, so unrelated local changes and
+    // the .copilot-ci-doctor/ cache folder never end up in the fix commit.
+    await execa("git", ["add", "--", ...touched]);
     const commitMsg = `CI Doctor: ${response.description || "automated fix"}`;
     await execa("git", ["commit", "-m", commitMsg]);
 

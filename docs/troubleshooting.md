@@ -43,9 +43,9 @@ Look at `.copilot-ci-doctor/cache/copilot-raw-output-debug.txt` (redacted). Runn
 
 Typical reasons: confidence below 80%, the fix could not be applied or pushed, or CI did not finish within 180 seconds. The scoreboard at the end says which. A push can fail if your account cannot push branches to the repository.
 
-## A fix commit contains extra files
+## "Could not determine which files the patch changes"
 
-`fix` and `watch` commit with `git add -A`. Start from a clean working tree and add `.copilot-ci-doctor/` to your `.gitignore`. See [safety and privacy](safety-and-privacy.md#known-gaps-to-be-aware-of).
+The model's reply was not a valid unified diff (no `---`/`+++` file headers), so nothing was applied. The proposal is in `.copilot-ci-doctor/cache/proposed.patch`. Run the command again.
 
 ## The demo created a public repository
 

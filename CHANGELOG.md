@@ -4,7 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-## [1.2.0] — 2026-10-24
+## [2.0.0] — 2026-10-24
+
+### Breaking changes and upgrading from 1.x
+Three behaviours changed. Everything else in this release only adds things.
+
+| What | 1.x | 2.0.0 | What to do |
+|---|---|---|---|
+| Exit codes | `0` also when the command ran but did not fix anything (confidence too low, patch declined or not applicable, iteration or time limit reached) | `0` done, `1` error, `2` ran correctly but did not fix | A script or CI step that treated `0` as success must also decide what `2` means. With `set -e` or `&&`, "did not fix" now stops the script. Check `$?` or use `|| true` if you want the old behaviour |
+| `demo` | Created a **public** GitHub repository without asking | Asks first and creates a **private** repository. Without a terminal and without `--yes` it creates nothing and fails | Add `--yes` for unattended runs, and `--public` if you want a public repository. Remove it afterwards with `demo --cleanup` |
+| `fix` with no terminal | Went to the confirmation prompt | Applies nothing and exits `2` unless `--yes` is given | Add `--yes` in scripts |
+
 
 ### Security
 - `fix` and `watch` now stage only the files named in the patch (`git add -- <files>`) instead of `git add -A`. Unrelated local changes and the `.copilot-ci-doctor/` cache folder can no longer end up in a fix commit. If the changed files cannot be determined, nothing is applied.
@@ -22,9 +32,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - GitHub Actions workflow `ci.yml`: syntax check, tests, CLI smoke test and package check on Node 18, 20 and 22 for every push to `main` and every pull request. The npm publish workflow now runs the tests too.
 
 ### Changed
-- **Behaviour change: exit codes.** Commands now exit `0` when done, `1` on error and `2` when they ran correctly but did not fix anything (confidence too low, patch declined or not applicable, iteration or time limit reached). These cases used to exit `0`. Scripts that treated `0` as "gave up or fixed" should check for `2` as well.
-- **Behaviour change: `demo`** now asks before creating a GitHub repository, and creates a **private** one (it used to create a public repository without asking). Use `--yes` to skip the question and `--public` for a public repository. Without a terminal and without `--yes` nothing is created.
-- `fix` without `--yes` and without a terminal no longer applies anything.
+- Exit codes are now `0` done, `1` error, `2` ran but did not fix, and `--help` lists them (see the breaking changes above).
+- `demo` asks before creating a repository, and it is private by default (see the breaking changes above).
 - Invalid option values are rejected up front with a clear message.
 - The duplicated patch-normalising code in `fix.js` and `watch.js` now lives in one module, `src/utils/patch.js`.
 

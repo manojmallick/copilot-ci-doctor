@@ -208,6 +208,14 @@ Creates a broken demo repo, pushes to trigger CI, then hands off to `watch` for 
 
 ---
 
+## npm scripts (for contributors)
+
+| Command | What it does |
+|---|---|
+| `npm start` | Run the CLI from source (`node src/cli.js`) |
+| `npm run test:bin` | Smoke test: runs `src/cli.js --help` |
+| `npm run prepublishOnly` | Runs `test:bin` automatically before `npm publish` |
+
 ## 🧠 How GitHub Copilot CLI is used (core requirement)
 
 GitHub Copilot CLI is the **reasoning engine** of this project.

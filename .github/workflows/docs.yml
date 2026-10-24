@@ -1,0 +1,68 @@
+name: Docs (GitHub Pages)
+
+# Builds the VitePress site in docs-vp/ from docs/ and deploys it to GitHub Pages.
+# Requires: repo Settings → Pages → Source = "GitHub Actions".
+# Pull requests only build the site (a dead link fails the build); pushes to main deploy it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'docs-vp/**'
+      - 'scripts/sync-docs.mjs'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'docs-vp/**'
+      - 'scripts/sync-docs.mjs'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs-vp
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # "last updated" times come from git history
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install
+      - name: Build (base=/copilot-ci-doctor/ for project Pages)
+        run: npm run docs:build
+        env:
+          DOCS_BASE: /copilot-ci-doctor/
+          DOCS_HOSTNAME: https://manojmallick.github.io/copilot-ci-doctor
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: docs-vp/.vitepress/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -22,7 +22,7 @@ See [docs/how-it-works.md](docs/how-it-works.md#code-layout). `src/cli.js` shoul
 1. Open an issue first for anything larger than a small fix, so we can agree on the approach.
 2. Create a branch from `main`.
 3. Keep changes focused. Update the docs in `README.md` and `docs/` when behaviour changes, and add a line under **Unreleased** in [CHANGELOG.md](CHANGELOG.md).
-4. Add or update tests for the behaviour you changed, then run `npm test`. The tests use Node's built-in runner (`node --test`), need no extra dependencies and do not call GitHub or Copilot.
+4. Documentation lives in `docs/`; the site in `docs-vp/` is generated from it (`cd docs-vp && npm install && npm run docs:dev` to preview). Add or update tests for the behaviour you changed, then run `npm test`. The tests use Node's built-in runner (`node --test`), need no extra dependencies and do not call GitHub or Copilot.
 5. Try the command you changed against a real or demo repository when it touches GitHub, git or Copilot, and say so in the pull request.
 6. Open a pull request using the template. CI runs the tests on Node 18, 20 and 22.
 

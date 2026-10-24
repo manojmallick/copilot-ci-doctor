@@ -19,7 +19,8 @@ import { askCopilot } from "../copilot/index.js";
 import { writeCache, readCache, ensureCacheDir, cachePath } from "../utils/paths.js";
 import { header, stepDivider, success, warn, dim, confidenceColor, printDiff, printEvidenceSummary } from "../utils/print.js";
 import { redact } from "../evidence/redact.js";
-import { getRepoInfo } from "../evidence/githubRepo.js";
+import { getRepoInfo, pickBaseBranch } from "../evidence/githubRepo.js";
+import { normalizePatch, patchFilePaths } from "../utils/patch.js";
 
 const POLL_INTERVAL_MS = 10_000;
 const POLL_TIMEOUT_MS = 180_000;
@@ -36,47 +37,6 @@ const CHARS_PER_TOKEN = 4;
 function estimateTokens(text) {
   if (!text) return 0;
   return Math.ceil(text.length / CHARS_PER_TOKEN);
-}
-
-/**
- * Normalize a unified diff by recounting hunk line counts.
- * (Duplicated from fix.js for self-contained watch usage)
- */
-function normalizePatch(patchText) {
-  const lines = patchText.replace(/\r/g, "").trimEnd().split("\n");
-  const output = [];
-  let hunkStart = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.startsWith("@@")) {
-      if (hunkStart >= 0) fixHunkHeader(output, hunkStart);
-      hunkStart = output.length;
-      output.push(line);
-    } else {
-      output.push(line);
-    }
-  }
-  if (hunkStart >= 0) fixHunkHeader(output, hunkStart);
-  return output.join("\n") + "\n";
-}
-
-function fixHunkHeader(lines, hunkIdx) {
-  const hdr = lines[hunkIdx];
-  const match = hdr.match(/^@@ -(\d+),?\d* \+(\d+),?\d* @@(.*)$/);
-  if (!match) return;
-  const oldStart = parseInt(match[1], 10);
-  const newStart = parseInt(match[2], 10);
-  const trailing = match[3] || "";
-  let oldCount = 0, newCount = 0;
-  for (let i = hunkIdx + 1; i < lines.length; i++) {
-    const l = lines[i];
-    if (l.startsWith("@@") || l.startsWith("diff ") || l.startsWith("--- ") || l.startsWith("+++ ")) break;
-    if (l.startsWith("-")) oldCount++;
-    else if (l.startsWith("+")) newCount++;
-    else { oldCount++; newCount++; }
-  }
-  lines[hunkIdx] = `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@${trailing}`;
 }
 
 /**
@@ -308,6 +268,14 @@ export async function watchCommand(options = {}) {
       const normalizedPatch = normalizePatch(response.patch);
       fs.writeFileSync(patchFile, normalizedPatch, "utf-8");
 
+      // Only these files will be staged after the patch is applied.
+      const touched = patchFilePaths(normalizedPatch);
+      if (touched.length === 0) {
+        warn("Could not determine which files the patch changes. Stopping.");
+        history.push({ iteration, outcome: "apply-failed", inputTokens, outputTokens });
+        break;
+      }
+
       // Pre-flight check
       try {
         await execa("git", ["apply", "--check", patchFile]);
@@ -337,7 +305,8 @@ export async function watchCommand(options = {}) {
         break;
       }
 
-      await execa("git", ["add", "-A"]);
+      // Stage only the patched files, never unrelated changes or the cache folder.
+      await execa("git", ["add", "--", ...touched]);
       const commitMsg = `CI Doctor: ${response.description || "automated fix"}`;
       await execa("git", ["commit", "-m", commitMsg]);
       success(`Patch applied and committed on ${branchName}`);
@@ -436,12 +405,11 @@ async function printWatchScoreboard(startTime, history, totalInputTokens, totalO
     console.log(chalk.bold.green("\n🎉 CI is fixed!\n"));
 
     // Create a PR against the repository's default branch
-    let baseBranch = "main";
+    let baseBranch = pickBaseBranch(null);
     try {
-      const info = await getRepoInfo();
-      if (info.defaultBranch && info.defaultBranch !== "unknown") baseBranch = info.defaultBranch;
+      baseBranch = pickBaseBranch((await getRepoInfo()).defaultBranch);
     } catch {
-      // fall back to "main" if the default branch cannot be determined
+      // keep the fallback if the default branch cannot be determined
     }
     try {
       const branch = (await execa("git", ["branch", "--show-current"])).stdout.trim();

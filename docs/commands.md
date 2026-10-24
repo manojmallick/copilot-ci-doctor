@@ -41,7 +41,7 @@ Asks Copilot for a minimal patch and then:
 
 Writes: `latest-patch.json`, `proposed.patch`, and on failure `git-apply-error.txt`.
 
-> **Start from a clean working tree.** The commit is made with `git add -A`, so any other uncommitted or untracked files in the repository, including the `.copilot-ci-doctor/` cache folder unless your repository ignores it, are included in the fix commit. Add `.copilot-ci-doctor/` to your `.gitignore`.
+> Only the files named in the patch are staged and committed (`git add -- <files>`), so unrelated local changes and the `.copilot-ci-doctor/` cache folder are not included in the fix commit. Applying the patch still needs the affected files to match the failed commit, so a clean checkout of it works best.
 
 ## `watch`
 

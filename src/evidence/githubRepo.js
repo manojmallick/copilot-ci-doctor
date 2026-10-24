@@ -31,6 +31,17 @@ export async function getRepoInfo() {
 }
 
 /**
+ * Choose the branch to open a pull request against.
+ * Uses the repository's default branch when known, otherwise "main".
+ *
+ * @param {string|null|undefined} defaultBranch
+ * @returns {string}
+ */
+export function pickBaseBranch(defaultBranch) {
+  return defaultBranch && defaultBranch !== "unknown" ? defaultBranch : "main";
+}
+
+/**
  * Infer owner/repo from git remote origin URL (fallback).
  *
  * @returns {Promise<string|null>} "owner/repo" or null

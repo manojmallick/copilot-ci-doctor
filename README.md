@@ -3,6 +3,7 @@
 **From red CI to a green pull request, with evidence, confidence scores and safe fixes.**
 
 [![npm version](https://img.shields.io/npm/v/copilot-ci-doctor)](https://www.npmjs.com/package/copilot-ci-doctor)
+[![CI](https://github.com/manojmallick/copilot-ci-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/copilot-ci-doctor/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/copilot-ci-doctor)](https://github.com/manojmallick/copilot-ci-doctor/blob/main/LICENSE)
 [![node](https://img.shields.io/node/v/copilot-ci-doctor)](https://nodejs.org)
 
@@ -76,7 +77,7 @@ Full walkthrough: [docs/how-it-works.md](https://github.com/manojmallick/copilot
 ## Safety and privacy
 
 - Fixes need confirmation unless you pass `--yes` or `--auto`. Patches with confidence below 60% or HIGH risk are never auto-applied, and `watch` stops below 80%.
-- Changes always go on a new `ci-fix/<timestamp>` branch, never directly on your default branch. When CI passes, a PR is opened against the repository's default branch.
+- Changes always go on a new `ci-fix/<timestamp>` branch, never directly on your default branch, and only the files the patch touches are committed. When CI passes, a PR is opened against the repository's default branch.
 - No force-pushes.
 - **What leaves your machine:** the evidence bundle (repo name and default branch, failed run and job metadata, 200 redacted log lines, the workflow YAML) is sent to GitHub Copilot as part of the prompt. Redaction is pattern-based and best-effort; it does not catch every possible secret.
 

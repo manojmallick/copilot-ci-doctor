@@ -22,14 +22,13 @@ See [docs/how-it-works.md](docs/how-it-works.md#code-layout). `src/cli.js` shoul
 1. Open an issue first for anything larger than a small fix, so we can agree on the approach.
 2. Create a branch from `main`.
 3. Keep changes focused. Update the docs in `README.md` and `docs/` when behaviour changes, and add a line under **Unreleased** in [CHANGELOG.md](CHANGELOG.md).
-4. Check that `npm run test:bin` (the `--help` smoke test) passes and try the command you changed against a real or demo repository.
-5. Open a pull request using the template.
-
-The project has no automated test suite yet, so please describe how you tested your change in the pull request. Adding tests is a very welcome contribution.
+4. Add or update tests for the behaviour you changed, then run `npm test`. The tests use Node's built-in runner (`node --test`), need no extra dependencies and do not call GitHub or Copilot.
+5. Try the command you changed against a real or demo repository when it touches GitHub, git or Copilot, and say so in the pull request.
+6. Open a pull request using the template. CI runs the tests on Node 18, 20 and 22.
 
 ## Safety-sensitive areas
 
-Changes to `src/evidence/redact.js` (secret patterns), `src/commands/fix.js` and `src/commands/watch.js` (applying patches, committing, pushing) deserve extra care. Never print or cache unredacted logs, never force-push, and keep the confidence and risk gates.
+Changes to `src/evidence/redact.js` (secret patterns), `src/commands/fix.js` and `src/commands/watch.js` (applying patches, committing, pushing) deserve extra care. Never print or cache unredacted logs, never force-push, never stage files the patch does not touch, and keep the confidence and risk gates. New redaction rules need a test in `test/redact.test.js`; build fake credentials at runtime instead of committing realistic-looking ones.
 
 ## Releases
 

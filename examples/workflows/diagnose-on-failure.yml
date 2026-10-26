@@ -1,0 +1,21 @@
+# Comment the likely cause on the pull request whenever the "CI" workflow fails.
+# Analysis only: nothing is changed or pushed. Experimental, see docs/github-action.md.
+name: Diagnose CI failures
+
+on:
+  workflow_run:
+    workflows: ["CI"]          # must match the `name:` of the workflow to watch
+    types: [completed]
+
+permissions:
+  actions: read                # read the failed run and its logs
+  pull-requests: write         # post the comment
+  contents: read
+  copilot-requests: write      # lets the built-in token call Copilot CLI
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: manojmallick/copilot-ci-doctor@main   # better: pin a release tag such as @v2.0.0

@@ -1,0 +1,23 @@
+# Same as diagnose-on-failure.yml, but with a personal access token of a user who has Copilot,
+# for organisations where the built-in token cannot use Copilot CLI.
+# Create the secret under Settings > Secrets and variables > Actions (here: COPILOT_TOKEN).
+name: Diagnose CI failures (PAT)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: manojmallick/copilot-ci-doctor@main
+        with:
+          github-token: ${{ secrets.COPILOT_TOKEN }}

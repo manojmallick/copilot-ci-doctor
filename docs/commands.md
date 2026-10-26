@@ -148,7 +148,19 @@ copilot-ci-doctor fix --dry-run --json | jq '{files, confidence, reason}'
 copilot-ci-doctor fix --yes --min-confidence 90 --json; echo "exit $?"
 ```
 
-Errors look like `{"ok": false, "command": "fix", "error": "..."}`. For `fix` and `watch`, `applied` says whether anything changed and `reason` explains why not (`dry-run`, `low-confidence`, `declined`, `does-not-apply`).
+Errors look like `{"ok": false, "command": "fix", "error": "..."}` and exit with `1`.
+
+### JSON output
+
+| Command | Fields |
+|---|---|
+| `analyze` | `ok`, `command`, `run` (`runId`, `workflow`, `branch`, `event`, `conclusion`, `createdAt`, `url`), `hypotheses` (each: `rank`, `title`, `confidence`, `explanation`, `evidence_refs`) |
+| `fix` | `ok`, `command`, `dryRun`, `description`, `confidence`, `risk`, `warnings`, `files`, `applied`, `reason`, `patch`, and when applied `branch` and `commit`; `error` when a patch failed to apply |
+| `watch` | `ok`, `command`, `fixed`, `outcome`, `iterations`, `pullRequest`, `tokens` (estimates), `history` (one entry per iteration with its `outcome`) |
+
+`fix` `reason` values (the `applied` field is `false` for all of them): `dry-run` (exit 0), and, with exit `2`, `low-confidence`, `high-risk`, `no-files` (the patch names no files), `does-not-apply`, `declined` (no confirmation) and `apply-failed`. When `applied` is `true` there is no `reason`.
+
+`watch` `outcome` values: `fixed`, `already-passing`, `max-iterations`, or the last iteration's outcome: `low-confidence`, `apply-failed`, `push-failed`, `timeout` or `dry-run`.
 
 ## Cache files
 

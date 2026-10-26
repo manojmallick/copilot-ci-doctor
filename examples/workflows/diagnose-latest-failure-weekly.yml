@@ -1,0 +1,38 @@
+# Once a week, diagnose the most recent failed run and keep the result as a build artifact.
+# No pull request needed (comment: false); read the JSON from the run's artifacts.
+name: Weekly CI failure report
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"       # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  copilot-requests: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the latest failed run
+        id: failed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh run list --repo "$GITHUB_REPOSITORY" --status failure --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          echo "run-id=$id" >> "$GITHUB_OUTPUT"
+
+      - uses: manojmallick/copilot-ci-doctor@main
+        if: steps.failed.outputs.run-id != ''
+        id: doctor
+        with:
+          run-id: ${{ steps.failed.outputs.run-id }}
+          comment: "false"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.failed.outputs.run-id != ''
+        with:
+          name: ci-diagnosis
+          path: ${{ steps.doctor.outputs.result-file }}

@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- `examples/`: three tested shell scripts (`triage.sh`, `fix-or-hand-off.sh`, `triage-to-markdown.sh`) and three GitHub Actions workflow templates. `test/examples.test.js` runs the scripts against a fake `gh` and checks that the workflows only use inputs `action.yml` defines.
+
+### Documentation
+- `docs/recipes.md` (new): ready-to-run scripts and workflows, exit-code handling.
+- `docs/examples.md`: six more worked failures (Node version, missing secret, misspelled action, token permissions, Python module, timeout) and a table of which failures `fix` can typically address.
+- `docs/commands.md`: a JSON output reference with every `reason` and `outcome` value.
+- Documentation site: inline code containing `{{ }}` (for example the `{{EVIDENCE_BUNDLE}}` template name in "How it works") was rendered as an empty element; the sync script now protects it.
+
 ## [2.0.0] — 2026-10-24
 
 ### Breaking changes and upgrading from 1.x

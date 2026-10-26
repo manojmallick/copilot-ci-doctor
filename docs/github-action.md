@@ -30,6 +30,8 @@ jobs:
       - uses: manojmallick/copilot-ci-doctor@main   # better: pin a release tag, e.g. @v2.0.0, once that tag is published
 ```
 
+Ready-made workflows (comment on the pull request, a PAT variant, a weekly report) are in [`examples/workflows/`](https://github.com/manojmallick/copilot-ci-doctor/tree/main/examples/workflows) and explained in [recipes](recipes.md#recipe-7-github-actions-workflows).
+
 ## Inputs
 
 | Input | Default | Meaning |

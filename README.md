@@ -131,7 +131,8 @@ The same pages are published at [manojmallick.github.io/copilot-ci-doctor](https
 | [docs/README.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/README.md) | Index of all documentation and where to find answers |
 | [docs/configuration.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/configuration.md) | Option defaults, fixed limits, credentials, files written |
 | [docs/github-action.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/github-action.md) | Run it in CI: post a diagnosis as a pull request comment |
-| [docs/examples.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/examples.md) | Worked examples: missing lockfile, failing test, lint error |
+| [docs/examples.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/examples.md) | Nine typical failures and what the tool can do about each |
+| [docs/recipes.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/recipes.md) | Ready-to-run scripts and workflows (in [`examples/`](https://github.com/manojmallick/copilot-ci-doctor/tree/main/examples)) |
 | [docs/safety-and-privacy.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/safety-and-privacy.md) | Guarantees, what is sent to Copilot, redaction patterns |
 | [docs/troubleshooting.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/troubleshooting.md) | Fixes for common problems |
 | [docs/HACKATHON.md](https://github.com/manojmallick/copilot-ci-doctor/blob/main/docs/HACKATHON.md) | Notes written for the hackathon judges |

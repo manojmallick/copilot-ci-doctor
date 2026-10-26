@@ -16,12 +16,13 @@ const REPO = "https://github.com/manojmallick/copilot-ci-doctor";
 const DESCRIPTIONS = {
   "README.md": "Index of the copilot-ci-doctor documentation and where to find answers.",
   "commands.md": "Every copilot-ci-doctor command and option, exit codes, JSON output and cache files.",
-  "examples.md": "Worked examples: missing lockfile, failing test and lint error, with the commands to run.",
+  "examples.md": "Nine typical CI failures (lockfile, tests, lint, Node version, secrets, action versions, permissions, Python modules, timeouts) and what copilot-ci-doctor can do about each.",
   "configuration.md": "Option defaults, fixed limits, credentials and files written by copilot-ci-doctor.",
   "github-action.md": "Run copilot-ci-doctor in GitHub Actions and post a diagnosis as a pull request comment.",
   "how-it-works.md": "The evidence bundle, how Copilot CLI is called, the JSON contract and patch handling.",
   "safety-and-privacy.md": "Safeguards, what is sent to GitHub Copilot, and what secret redaction covers and misses.",
   "troubleshooting.md": "Fixes for common copilot-ci-doctor errors: gh, Copilot CLI, patches and confidence gates.",
+  "recipes.md": "Ready-to-run scripts and GitHub Actions workflows for copilot-ci-doctor: triage, fix when confident, Markdown reports, exit-code handling.",
   "faq.md": "Answers to common questions: what is sent to Copilot, GitHub permissions, exit codes, Windows and cleanup.",
   "HACKATHON.md": "Notes written for the hackathon judges.",
   "RELEASING.md": "How maintainers publish copilot-ci-doctor to npm.",
@@ -46,9 +47,31 @@ export function rewriteLinks(text) {
   });
 }
 
+const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * VitePress treats {{ ... }} in prose as a Vue expression, and renders an inline code span such as
+ * `{{EVIDENCE_BUNDLE}}` as an empty element. Fenced code blocks are safe; inline spans outside
+ * them are turned into <code v-pre> so the braces are shown as written.
+ */
+export function protectInlineBraces(text) {
+  let inFence = false;
+  return text
+    .split("\n")
+    .map((line) => {
+      if (/^\s*(```|~~~)/.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence || !line.includes("{{")) return line;
+      return line.replace(/`([^`\n]*\{\{[^`\n]*)`/g, (_, code) => `<code v-pre>${escapeHtml(code)}</code>`);
+    })
+    .join("\n");
+}
+
 export function toPage(file, text) {
   const description = DESCRIPTIONS[file] ?? "";
-  const body = rewriteLinks(text);
+  const body = protectInlineBraces(rewriteLinks(text));
   return `---\ndescription: "${description.replace(/"/g, '\\"')}"\n---\n\n${body}`;
 }
 

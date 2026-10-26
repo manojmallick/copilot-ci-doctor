@@ -60,6 +60,7 @@ export default defineConfig({
           { text: 'Documentation index', link: '/guide/' },
           { text: 'Commands', link: '/guide/commands' },
           { text: 'Worked examples', link: '/guide/examples' },
+          { text: 'Recipes (scripts and workflows)', link: '/guide/recipes' },
           { text: 'Configuration', link: '/guide/configuration' },
         ],
       },

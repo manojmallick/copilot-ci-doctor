@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rewriteLinks, toPage } from "../scripts/sync-docs.mjs";
+import { rewriteLinks, toPage, protectInlineBraces } from "../scripts/sync-docs.mjs";
 
 const REPO = "https://github.com/manojmallick/copilot-ci-doctor";
 
@@ -26,4 +26,14 @@ test("pages get front matter with a description", () => {
   const page = toPage("commands.md", "# Commands\n");
   assert.match(page, /^---\ndescription: "Every copilot-ci-doctor command/);
   assert.ok(page.endsWith("# Commands\n"));
+});
+
+test("inline code containing {{ }} is protected from Vue, fenced blocks are left alone", () => {
+  assert.equal(
+    protectInlineBraces("a template (`{{EVIDENCE_BUNDLE}}`) and `${{ secrets.X }}`, but `plain` stays"),
+    "a template (<code v-pre>{{EVIDENCE_BUNDLE}}</code>) and <code v-pre>${{ secrets.X }}</code>, but `plain` stays"
+  );
+  const fenced = "```yaml\ntoken: ${{ secrets.X }}\n```\n";
+  assert.equal(protectInlineBraces(fenced), fenced);
+  assert.equal(protectInlineBraces("`a < b {{ x }}`"), "<code v-pre>a &lt; b {{ x }}</code>");
 });

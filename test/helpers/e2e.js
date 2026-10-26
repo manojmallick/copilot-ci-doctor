@@ -15,6 +15,8 @@ const FAKE_GH = path.join(here, "fake-gh.cjs");
 
 export const e2eSupported = process.platform !== "win32" && spawnSync("git", ["--version"]).status === 0;
 
+export const jqAvailable = spawnSync("jq", ["--version"]).status === 0;
+
 export const CI_YML = "name: CI\non: push\njobs:\n  build:\n    steps:\n      - run: npm ci\n      - run: npm test\n";
 
 /** A patch for CI_YML with deliberately wrong hunk counts (as models produce). */
@@ -104,6 +106,8 @@ export function createSandbox(scenarioOverrides = {}) {
   git("push", "-q", "-u", "origin", "main");
 
   fs.writeFileSync(path.join(bin, "gh"), `#!/bin/sh\nexec "${process.execPath}" "${FAKE_GH}" "$@"\n`, { mode: 0o755 });
+  // `copilot-ci-doctor` on the PATH, so the example scripts run exactly as a user would run them
+  fs.writeFileSync(path.join(bin, "copilot-ci-doctor"), `#!/bin/sh\nexec "${process.execPath}" "${CLI}" "$@"\n`, { mode: 0o755 });
   const writeScenario = (overrides) =>
     fs.writeFileSync(path.join(fakeDir, "scenario.json"), JSON.stringify(defaultScenario(overrides)));
   writeScenario(scenarioOverrides);
@@ -123,6 +127,11 @@ export function createSandbox(scenarioOverrides = {}) {
       let json = null;
       try { json = JSON.parse(r.stdout); } catch { /* not JSON */ }
       return { status: r.status, stdout: r.stdout, stderr: r.stderr, json };
+    },
+    /** Run any command in the sandbox (for example an example script) with the sandbox PATH. */
+    exec(file, args = [], { env: extra = {}, cwd = repo, timeout = 60_000 } = {}) {
+      const r = spawnSync(file, args, { cwd, env: { ...env, ...extra }, encoding: "utf8", timeout, input: "" });
+      return { status: r.status, stdout: r.stdout, stderr: r.stderr };
     },
     /** Every `gh` call so far, as argument arrays. */
     calls() {
